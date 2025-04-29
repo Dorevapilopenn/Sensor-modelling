@@ -1,4 +1,4 @@
-param= slider_gui_mixed_U();
+param= box_gui_mixed_U();
 names= param(:,1);
 values= str2double(param(:, 2));
 select= [1,2,4,6,7,9,11,12,14,16,17,19,21,22,24];
