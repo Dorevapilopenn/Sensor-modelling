@@ -1,19 +1,19 @@
 function [f, Cc, a] =IDA_function(values, c_0, ph)
-    spec_names = {'A' 'B' 'C' 'AB' 'AC' 'ACH' 'CH'}; % species names
-    Model      = [ 1   0   0   1    1    1     0; ...  % D
-                   0   1   0   1    0    0     0; ...  % SC
-                   0   0   1   0    1    1     1];     % BA
-    absorbing  = [ 0   0   1   0    1    1     1];
+    spec_names = {'A' 'B' 'C' 'CH' 'AB' 'AC' 'ACH'}; % species names
+    Model      = [ 1   0   0   0    1    1    1    ; ...  % A
+                   0   1   0   0    1    0    0    ; ...  % B
+                   0   0   1   1    0    1    1    ];     % C
+    absorbing  = [ 0   0   1   1    0    1    1    ];
     
-    beta = [1 1 1 values(2,1) values(1,1) 10.67*ph 6.72*ph;...
-            1 1 1 values(3,1) values(1,1) 10.67*ph 6.72*ph;...
-            1 1 1 values(5,1) values(4,1) 10.3*ph  6.72*ph;...
-            1 1 1 values(6,1) values(4,1) 10.3*ph  6.72*ph];
+    beta = [1 1 1  6.72-ph values(2,1) values(1,1) 10.67-ph;...
+            1 1 1  6.72-ph values(3,1) values(1,1) 10.67-ph;...
+            1 1 1  6.72-ph values(5,1) values(4,1) 10.3-ph ;...
+            1 1 1  6.72-ph values(6,1) values(4,1) 10.3-ph ];
 
     beta_f= 10.^beta;
 
-    nsamp=30;
-    ncomp  = 4;   
+    nsamp= 30;
+    ncomp= 4;   
     C_tot_A=c_0(1,1)*ones(nsamp,1);
     C_tot_B=[c_0(1,2)*rand(nsamp,1), c_0(1,3)*rand(nsamp,1)]; % G concentration
     C_tot_C=c_0(1,4)*ones(nsamp,1);
@@ -25,7 +25,7 @@ function [f, Cc, a] =IDA_function(values, c_0, ph)
         else
             m=1;
         end
-        C_tot= [C_tot_H C_tot_G(:, m) C_tot_D];   % G concentration
+        C_tot= [C_tot_A C_tot_B(:, m) C_tot_C];   % G concentration
         c_comp_guess = [1e-10 1e-10 1e-10 ];
         for j=1:nsamp
             C(j,:)=NewtonRaphson(Model,beta_f(i, :),C_tot(j,:),c_comp_guess,j);
@@ -36,9 +36,9 @@ function [f, Cc, a] =IDA_function(values, c_0, ph)
 
     % Generation of spectra
     lam = 400:1:700;                  
-    mean  = [values(7,1) values(8,1); values(7,1) values(9,1)];
-    width = [values(13,1) values(14,1); values(13,1) values(15,1)];
-    height= [values(10,1) values(11,1); values(10,1) values(12,1)];
+    mean  = [values(7,1) values(8,1) values(9,1) values(10,1); values(7,1) values(8,1) values(11,1) values(12,1)];
+    height= [values(13,1) values(14,1) values(15,1) values(16,1); values(13,1) values(14,1) values(17,1) values(18,1)];
+    width = [values(19,1) values(20,1) values(21,1) values(22,1); values(19,1) values(20,1) values(23,1) values(24,1)];
     A = cell(1,2);
     for i=1:2
         for j=1:2
