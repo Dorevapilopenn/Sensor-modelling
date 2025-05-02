@@ -1,11 +1,11 @@
-param= box_gui_mixed_U();
+param= slider_gui_mixed_U();
 names= param(:,1);
 values= str2double(param(:, 2));
 select= [1,2,4,6,7,9,11,12,14,16,17,19,21,22,24];
 Iparam= param(select, :);
 Inames= Iparam(:,1);
 Ivalues= str2double(Iparam(:, 2));
-C_0 = [16.5e-6 1.2e-15 1.3e-12 16.5e-6];  % conc H,G,D respectively
+C_0 = [16.5e-6 1.2e-16 1.3e-16 16.5e-6];  % conc H,G,D respectively
 [IDA_D IDA_c Ia] = IDA_function(Ivalues, C_0);
 [m_D m_c ma] = mixedfunction(values, C_0);
 % Plotting 
