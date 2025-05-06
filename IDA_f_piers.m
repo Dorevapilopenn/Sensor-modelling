@@ -26,10 +26,9 @@ function [f, Cc, a] =IDA_function(values, c_0, ph)
             m=1;
         end
         C_tot= [C_tot_A C_tot_B(:, m) C_tot_C];   % G concentration
-        c_comp_guess = [1e-10 1e-10 1e-10 ];
         for j=1:nsamp
+            c_comp_guess = [1e-10 1e-10 1e-10 ];
             C(j,:)=NewtonRaphson(Model,beta_f(i, :),C_tot(j,:),c_comp_guess,j);
-            c_comp_guess=C(j,1:ncomp);
         end
         C_eq{i}=C;
     end
@@ -41,7 +40,7 @@ function [f, Cc, a] =IDA_function(values, c_0, ph)
     width = [values(19,1) values(20,1) values(21,1) values(22,1); values(19,1) values(20,1) values(23,1) values(24,1)];
     A = cell(1,2);
     for i=1:2
-        for j=1:2
+        for j=1:4
             A{i}(j,:)= height(i,j)*gauss(lam,mean(i,j),width(i,j));
         end
     end
