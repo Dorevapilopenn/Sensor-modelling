@@ -52,9 +52,9 @@ for i = 1:num_params
         range = range_0_10;
     elseif contains(param_names{i}, 'lambda')
         range = range_400_700;
-    elseif i <= 12
+    elseif i <= 18
         range = range_40k_100k;
-    elseif i <= 15
+    elseif i <= 24
         range = range_50_100;
     end
     
@@ -109,9 +109,9 @@ function defaults = initialize_defaults()
             defaults(j) = mean(range_0_10);
         elseif contains(param_names{j}, 'lambda')
             defaults(j) = mean(range_400_700);
-        elseif j <= 12
+        elseif j <= 18
             defaults(j) = mean(range_40k_100k);
-        elseif j <= 15
+        elseif j <= 24
             defaults(j) = mean(range_50_100);
         end
     end
