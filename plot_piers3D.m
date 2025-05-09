@@ -2,8 +2,8 @@
 param = box_gui_IDA_piers();
 names = param(:, 1);
 values = str2double(param(:, 2));
-C_0 = [16.5e-2 1.2e-5 1.3e-5 16.5e-2];  % conc A, B1, B2, C respectively
-[IDA_D, IDA_c, Ia] = IDA_f_piers(values, C_0, 7.4);
+C_0 = [1e-5 1.3e-2 1.3e-2 1e-5];  % conc A, B1, B2, C respectively
+[C_eq, IDA_D, IDA_c, Ia] = IDA_f_piers(values, C_0, 7.3)
 lgnd= ["C", "CH+", "AC", "ACH+"]
 
 % Plotting
@@ -74,7 +74,6 @@ title(['Single(S2)']);
 fig2 = figure(2);
 D = [IDA_D{1}, IDA_D{3}; IDA_D{2},IDA_D{4}];
 [U, S, v] = svd(D, 0);
-Sc = U(:, 1:2) * S(1:2, 1:2);
 Sc = U(:,1:3)*S(1:3,1:3);
 plot3(Sc(1:30,1),Sc(1:30,2),Sc(1:30,3),'r*')
 hold on

@@ -1,14 +1,14 @@
-function [f, Cc, a] =IDA_function(values, c_0, ph)
+function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph)
     spec_names = {'A' 'B' 'C' 'CH' 'AB' 'AC' 'ACH'}; % species names
     Model      = [ 1   0   0   0    1    1    1    ; ...  % A
                    0   1   0   0    1    0    0    ; ...  % B
                    0   0   1   1    0    1    1    ];     % C
     absorbing  = [ 0   0   1   1    0    1    1    ];
     
-    beta = [1 1 1  -6.72-ph 5.43 4.91 -2.77-ph;...
-            1 1 1  -6.72-ph 3.01 4.91 -2.77-ph;...
-            1 1 1  -6.72-ph 4.88 4.65 -3.14-ph ;...
-            1 1 1  -6.72-ph 3.03 4.65 -3.14-ph ];
+    beta = [1, 1, 1,  6.72-ph, 5.46, 2.99, 10.67-ph;...
+            1, 1, 1,  6.72-ph, 3.01, 2.99, 10.67-ph;...
+            1, 1, 1,  6.72-ph, 4.88, 2.51, 10.3-ph ;...
+            1, 1, 1,  6.72-ph, 3.03, 2.51, 10.3-ph];
 
     beta_f= 10.^beta;
 
@@ -44,7 +44,7 @@ function [f, Cc, a] =IDA_function(values, c_0, ph)
             A{i}(j,:)= height(i,j)*gauss(lam,mean(i,j),width(i,j));
         end
     end
-    sig_R = 0.000;
+    sig_R = 0.0001;
     randn('state',0);
     D_meas = cell(1,4);
     C_C=cell(1,4);
@@ -61,4 +61,5 @@ function [f, Cc, a] =IDA_function(values, c_0, ph)
     f= D_meas;
     Cc= C_C;
     a= absorbing;
+    Ceq= C_eq;
 end

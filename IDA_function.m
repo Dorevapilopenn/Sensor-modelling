@@ -44,7 +44,7 @@ function [f, Cc, a] =IDA_function(values, c_0)
             A{i}(j,:)= height(i,j)*gauss(lam,mean(i,j),width(i,j));
         end
     end
-    sig_R = 0.000;
+    sig_R = 0.0001;
     randn('state',0);
     D_meas = cell(1,4);
     C_C=cell(1,4);
