@@ -35,9 +35,9 @@ function [f, Cc, a] =IDA_function(values, c_0, ph)
 
     % Generation of spectra
     lam = 400:1:700;                  
-    mean  = [values(7,1) values(8,1) values(9,1) values(10,1); values(7,1) values(8,1) values(11,1) values(12,1)];
-    height= [values(13,1) values(14,1) values(15,1) values(16,1); values(13,1) values(14,1) values(17,1) values(18,1)];
-    width = [values(19,1) values(20,1) values(21,1) values(22,1); values(19,1) values(20,1) values(23,1) values(24,1)];
+    mean  = [499 448 468 451; 499 448 466 452];
+    height= [69800 46400 35600 41500; 69800 46400 36100 44300 ];
+    width = [27.76 21.49 43.91 22.68; 27.76 21.49 41.66 23.33];
     A = cell(1,2);
     for i=1:2
         for j=1:4
