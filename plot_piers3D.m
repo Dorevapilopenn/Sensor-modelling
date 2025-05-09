@@ -3,8 +3,8 @@ param = box_gui_IDA_piers();
 names = param(:, 1);
 values = str2double(param(:, 2));
 C_0 = [1e-5 1.3e-2 1.3e-2 1e-5];  % conc A, B1, B2, C respectively
-[C_eq, IDA_D, IDA_c, Ia] = IDA_f_piers(values, C_0, 7.3)
-lgnd= ["C", "CH+", "AC", "ACH+"]
+[C_eq, IDA_D, IDA_c, Ia] = IDA_f_piers(values, C_0, 7.3);
+lgnd= ["C", "CH+", "AC", "ACH+"];
 
 % Plotting
 % Create a string with names and values

@@ -5,10 +5,10 @@ function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph)
                    0   0   1   1    0    1    1    ];     % C
     absorbing  = [ 0   0   1   1    0    1    1    ];
     
-    beta = [1, 1, 1,  6.72-ph, 5.46, 2.99, 10.67-ph;...
-            1, 1, 1,  6.72-ph, 3.01, 2.99, 10.67-ph;...
-            1, 1, 1,  6.72-ph, 4.88, 2.51, 10.3-ph ;...
-            1, 1, 1,  6.72-ph, 3.03, 2.51, 10.3-ph];
+    beta = [0, 0, 0,  6.72-ph, 5.46, 2.99, 10.67-ph;...
+            0, 0, 0,  6.72-ph, 3.01, 2.99, 10.67-ph;...
+            0, 0, 0,  6.72-ph, 4.88, 2.51, 10.3-ph ;...
+            0, 0, 0,  6.72-ph, 3.03, 2.51, 10.3-ph];
 
     beta_f= 10.^beta;
 
@@ -44,7 +44,7 @@ function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph)
             A{i}(j,:)= height(i,j)*gauss(lam,mean(i,j),width(i,j));
         end
     end
-    sig_R = 0.0001;
+    sig_R = 0.001;
     randn('state',0);
     D_meas = cell(1,4);
     C_C=cell(1,4);
