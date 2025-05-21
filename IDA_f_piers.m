@@ -1,4 +1,4 @@
-function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph)
+function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph, ph2)
     spec_names = {'A' 'B' 'C' 'CH' 'AB' 'AC' 'ACH'}; % species names
     Model      = [ 1   0   0   0    1    1    1    ; ...  % A
                    0   1   0   0    1    0    0    ; ...  % B
@@ -7,8 +7,8 @@ function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph)
     
     beta = [0, 0, 0,  6.72-ph, 5.46, 2.99, 10.67-ph;...
             0, 0, 0,  6.72-ph, 3.01, 2.99, 10.67-ph;...
-            0, 0, 0,  6.72-ph, 4.88, 2.51, 10.3-ph ;...
-            0, 0, 0,  6.72-ph, 3.03, 2.51, 10.3-ph];
+            0, 0, 0,  6.72-ph2, 4.88, 2.51, 10.3-ph2 ;...
+            0, 0, 0,  6.72-ph2, 3.03, 2.51, 10.3-ph2];
 
     beta_f= 10.^beta;
 

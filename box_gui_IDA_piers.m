@@ -7,12 +7,6 @@ param_names = {'A1C', 'A1B1', 'A2B2', 'A2C', 'A2B1', 'A2B2', ...
 % Create UI figure
 fig = uifigure('Name', 'Parameter Inputs', 'Position', [100, 50, 400, 600]); % Adjust height
 
-% Define ranges
-range_0_10 = [0, 10];
-range_400_700 = [400, 700];
-range_40k_100k = [40000, 100000];
-range_50_100 = [50, 100];
-
 % Initialize matrix to store parameter values
 num_params = numel(param_names);
 param_values = zeros(num_params, 1);
@@ -47,17 +41,6 @@ numeric_inputs = gobjects(num_params, 1);
 for i = 1:num_params
     y_pos = 880 - (i-1) * 35; % Position elements vertically
     
-    % Determine range based on parameter type
-    if i <= 6
-        range = range_0_10;
-    elseif contains(param_names{i}, 'lambda')
-        range = range_400_700;
-    elseif i <= 18
-        range = range_40k_100k;
-    elseif i <= 24
-        range = range_50_100;
-    end
-    
     % Create numeric input box
     numeric_inputs(i) = uieditfield(panel, 'numeric', ...
         'Position', [120, y_pos, 150, 22], ...
@@ -66,8 +49,8 @@ for i = 1:num_params
     % Create label for parameter name
     uilabel(panel, 'Text', param_names{i}, 'Position', [10, y_pos-5, 100, 20]);
     
-    % Callback function to validate and update values
-    numeric_inputs(i).ValueChangedFcn = @(src, event) validateAndUpdateValue(src, i, range);
+    % Callback function to update values without range checking
+    numeric_inputs(i).ValueChangedFcn = @(src, event) updateValue(src, i);
 end
 
 % "Run" button
@@ -77,14 +60,9 @@ btn = uibutton(fig, 'Text', 'Run', 'Position', [150, 20, 100, 30], ...
 % Pause execution until user presses Run
 uiwait(fig);
 
-% Nested function to validate and update values
-function validateAndUpdateValue(input, index, range)
-    if input.Value < range(1) || input.Value > range(2)
-        input.Value = param_values(index); % Reset to previous value
-        uialert(fig, 'Value out of range!', 'Input Error');
-    else
-        param_values(index) = input.Value;
-    end
+% Nested function to update values without range checking
+function updateValue(input, index)
+    param_values(index) = input.Value;
 end
 
 % Nested function for Run button
@@ -104,16 +82,5 @@ param = [transpose(string(param_names)), num2cell(param_values)];
 % Function to initialize default values
 function defaults = initialize_defaults()
     defaults = zeros(num_params, 1);
-    for j = 1:num_params
-        if j <= 6
-            defaults(j) = mean(range_0_10);
-        elseif contains(param_names{j}, 'lambda')
-            defaults(j) = mean(range_400_700);
-        elseif j <= 18
-            defaults(j) = mean(range_40k_100k);
-        elseif j <= 24
-            defaults(j) = mean(range_50_100);
-        end
-    end
 end
 end

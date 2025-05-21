@@ -1,33 +1,13 @@
 % filepath: c:\Users\Propanone\Desktop\Programming\Sensor\Modelling\Sensor-modelling\plot_piers.m
-param = box_gui_IDA_piers();
-names = param(:, 1);
-values = str2double(param(:, 2));
-C_0 = [1e-5 1.3e-2 1.3e-2 1e-5];  % conc A, B1, B2, C respectively
-[C_eq, IDA_D, IDA_c, Ia] = IDA_f_piers(values, C_0, 7.3);
+C_0 = [2e-3 1.5e-4 1e-6 1e-5];  % conc A, B1, B2, C respectively
+[C_eq, IDA_D, IDA_c, Ia] = IDA_f_piers(values, C_0, 7.2, 7.6);
 lgnd= ["C", "CH+", "AC", "ACH+"];
 
 % Plotting
-% Create a string with names and values
-headerText = '';
-for i = 1:length(names)
-    headerText = [headerText, sprintf('%s: %.2f  ', names{i}, values(i, 1))];
-end
-
-% Split the header text into two lines
-midPoint = ceil(length(headerText) / 2); % Find the midpoint
-lineBreakIndex = find(headerText(1:midPoint) == ' ', 1, 'last'); % Break at the last space before midpoint
-headerText1 = headerText(1:lineBreakIndex); % First line
-headerText2 = headerText(lineBreakIndex+1:end); % Second line
-
-% Combine the two lines with a newline character
-headerText = sprintf('%s\n%s', headerText1, headerText2);
 
 fig1 = figure(1);
 % Create a tiled layout (2x3) with compact spacing.
 t = tiledlayout(2, 3, 'TileSpacing', 'Compact', 'Padding', 'Compact');
-
-% Add a super title that appears on top of the entire layout.
-sgtitle(headerText, 'FontSize', 10);
 
 nexttile;
 plot(IDA_c{1}, '.-');
