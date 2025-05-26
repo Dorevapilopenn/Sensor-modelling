@@ -1,4 +1,4 @@
-function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph, ph2)
+function [Ceq, f, Cc, a, spec] =IDA_function(values, c_0, ph, ph2)
     spec_names = {'A' 'B' 'C' 'CH' 'AB' 'AC' 'ACH'}; % species names
     Model      = [ 1   0   0   0    1    1    1    ; ...  % A
                    0   1   0   0    1    0    0    ; ...  % B
@@ -34,7 +34,7 @@ function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph, ph2)
     end
 
     % Generation of spectra
-    lam = 400:1:700;                  
+    lam = 350:1:700;                  
     mean  = [499 448 468 451; 499 448 466 452];
     height= [69800 46400 35600 41500; 69800 46400 36100 44300 ];
     width = [27.76 21.49 43.91 22.68; 27.76 21.49 41.66 23.33];
@@ -58,6 +58,7 @@ function [Ceq, f, Cc, a] =IDA_function(values, c_0, ph, ph2)
         D_meas{i} = D_calc + sig_R*randn(size(D_calc));
         C_C{i} = C_colored;
     end 
+    spec = A;
     f= D_meas;
     Cc= C_C;
     a= absorbing;
