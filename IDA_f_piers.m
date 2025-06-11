@@ -12,18 +12,19 @@ function [Ceq, f, Cc, a, spec] =IDA_function(c_0, ph, ph2)
 
     beta_f= 10.^beta;
     nsamp= 30;
-    C_tot_A=c_0(1,1)*ones(nsamp,1);
-    C_tot_B=[c_0(1,2)*(.68*ones(nsamp,1)+.64*rand(nsamp,1)), c_0(1,3)*(.68*ones(nsamp,1)+.64*rand(nsamp,1))]; % G concentration
-    C_tot_C=c_0(1,4)*ones(nsamp,1);
+    C_tot_A=[c_0(1,1)*ones(nsamp,1), c_0(1,2)*ones(nsamp,1)];
+    C_tot_B=[c_0(1,3)*(.9*ones(nsamp,1)+.2*rand(nsamp,1)), c_0(1,4)*(.9*ones(nsamp,1)+.2*rand(nsamp,1))]; % G concentration
+    C_tot_C=c_0(1,5)*ones(nsamp,1);
     C_eq  = cell(1, 4);
     for i=1:4
         clear C
+        An= floor((i+1)/2);
         if rem(i,2)==0
             m=2;
         else
             m=1;
         end
-        C_tot= [C_tot_A C_tot_B(:, m) C_tot_C];   % G concentration
+        C_tot= [C_tot_A(:, An) C_tot_B(:, m) C_tot_C];   % G concentration
         for j=1:nsamp
             c_comp_guess = [1e-10 1e-10 1e-10 ];
             C(j,:)=NewtonRaphson(Model,beta_f(i, :),C_tot(j,:),c_comp_guess,j);

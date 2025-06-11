@@ -1,6 +1,6 @@
 % filepath: c:\Users\Propanone\Desktop\Programming\Sensor\Modelling\Sensor-modelling\plot_piers.m
 vals = GUI_piers();  % Get values from GUI
-C_0 = [vals(3) vals(4) vals(5) vals(6)];  % conc A, B1, B2, C respectively
+C_0 = [vals(3) vals(4) vals(5) vals(6) vals(7)];  % conc A, B1, B2, C respectively
 [C_eq, IDA_D, IDA_c, Ia,  A] = IDA_f_piers(C_0, vals(1), vals(2))
 lgnd= ["C", "CH+", "AC", "ACH+"];
 
@@ -15,25 +15,25 @@ nexttile;
 plot(IDA_c{1}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC4B1");
+title("SC4PUT");
 
 nexttile;
 plot(IDA_c{2}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC4B2");
+title("SC4TYR");
 
 nexttile;
 plot(IDA_c{3}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC6B1");
+title("SC6PUT");
 
 nexttile;
 plot(IDA_c{4}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC6B2");
+title("SC6TYR");
 
 fig1 = figure(2);
 % Create a tiled layout (2x3) with compact spacing.
@@ -47,7 +47,9 @@ title("SC4");
 
 D = [IDA_D{1}; IDA_D{2}];
 nexttile;
-plot(lam, D, 'y');
+h1 = plot(lam, D(1:30, :), 'y'); hold on; 
+h2 = plot(lam, D(31:60, :), 'g');
+legend([h1(1), h2(1)], {'PUT', 'TYR'});
 xlabel('lambda'); ylabel('ABS');
 title("SC4");
 
@@ -65,7 +67,9 @@ title("SC6");
 
 D = [IDA_D{3}; IDA_D{4}];
 nexttile;
-plot(lam, D, 'y');
+h1 = plot(lam, D(1:30, :), 'y'); hold on; 
+h2 = plot(lam, D(31:60, :), 'g');
+legend([h1(1), h2(1)], {'PUT', 'TYR'});
 xlabel('lambda'); ylabel('ABS');
 title("SC6");
 
