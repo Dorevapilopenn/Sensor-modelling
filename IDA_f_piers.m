@@ -34,17 +34,8 @@ function [Ceq, f, Cc, a, spec] =IDA_function(values, c_0, ph, ph2)
     end
 
     % Generation of spectra
-    lam = 350:1:700;                  
-    mean  = [499 448 468 451; 499 448 466 452];
-    height= [69800 46400 35600 41500; 69800 46400 36100 44300 ];
-    width = [27.76 21.49 43.91 22.68; 27.76 21.49 41.66 23.33];
-    A = cell(1,2);
-    for i=1:2
-        for j=1:4
-            A{i}(j,:)= height(i,j)*gauss(lam,mean(i,j),width(i,j));
-        end
-    end
-    sig_R = 0.001;
+    A = piers_spectra();
+    % Simulate the measurements
     randn('state',0);
     D_meas = cell(1,4);
     C_C=cell(1,4);
@@ -55,7 +46,7 @@ function [Ceq, f, Cc, a, spec] =IDA_function(values, c_0, ph, ph2)
         else
             D_calc = C_colored*A{2};
         end
-        D_meas{i} = D_calc + sig_R*randn(size(D_calc));
+        D_meas{i} = D_calc + 0.001*max(D_calc(:))*randn(size(D_calc));
         C_C{i} = C_colored;
     end 
     spec = A;
