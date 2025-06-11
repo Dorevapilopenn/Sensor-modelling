@@ -54,7 +54,7 @@ hold on;
 scatter(Sc(31:60, 1), Sc(31:60, 2), 36, 'b', 'filled');
 title(['Single(S2)']);
 
-fig2 = figure(2);
+fig2 = figure(3);
 D = [IDA_D{1}, IDA_D{3}; IDA_D{2},IDA_D{4}];
 [U, S, v] = svd(D, 0);
 Sc = U(:, 1:2) * S(1:2, 1:2);

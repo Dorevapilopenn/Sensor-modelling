@@ -1,9 +1,5 @@
-function f = gauss(x,x_max,width)
+function f = gauss(x, x_max, sigma)
+% Gaussian function with standard deviation sigma, centered at x_max
 
-% Practical Data Analysis in Chemistry
-% Marcel Maeder & Yorck-Michael Neuhold
-% University of Newcastle, Australia, 2006
-
-% Gaussian of half width <width>, centered around <x_max>
-
-f = exp(-log(2)*((x-x_max)/(width/2)).^2);
+    f = exp(-0.5 * ((x - x_max) / sigma).^2);
+end
