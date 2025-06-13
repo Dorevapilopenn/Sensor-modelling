@@ -46,16 +46,30 @@ xlabel('lambda'); ylabel('ABS');
 title("SC4");
 
 D = [IDA_D{1}; IDA_D{2}];
+S1trB1 = D(1:50, :)
+S1trB2 = D(91:140, :);
+S1tB1 = D(51:90, :);
+S1tB2 = D(141:180, :);
+S1tr  =  [S1trB1, 1;
+          S1trB2, 2];
+S1t   =  [S1tB1, 1;
+          S1tB2, 2];
+S1tr = S1tr(randperm(size(S1tr, 1)), :);  % Shuffle the training set
+S1t = S1t(randperm(size(S1t, 1)), :);  % Shuffle the test set
+S1trD = S1tr(:, 1:end-1);  % Training data
+S1trL = S1tr(:, end);  % Training labels 
+S1tD = S1t(:, 1:end-1);  % Test data
+S1tL = S1t(:, end);  % Test labels
 nexttile;
-h1 = plot(lam, D(1:30, :), 'y'); hold on; 
-h2 = plot(lam, D(31:60, :), 'g');
+h1 = plot(lam, D(1:90, :), 'y'); hold on; 
+h2 = plot(lam, D(91:180, :), 'g');
 legend([h1(1), h2(1)], {'PUT', 'TYR'});
 xlabel('lambda'); ylabel('ABS');
 title("SC4");
 
 nexttile;
 [~,Sc, ~, ~, explained] = pca(D);
-plot(Sc(1:30,1),Sc(1:30,2),'r*');hold on; plot(Sc(31:60,1),Sc(31:60,2),'b*')
+plot(Sc(1:90,1),Sc(1:90,2),'r*');hold on; plot(Sc(91:180,1),Sc(91:180,2),'b*')
 xlabel("PC1 " + explained(1)); ylabel("PC2 " + explained(2));
 title(['Single(SC4)']);
 
@@ -66,22 +80,50 @@ xlabel('lambda'); ylabel('ABS');
 title("SC6");
 
 D = [IDA_D{3}; IDA_D{4}];
+S2trB1 = D(1:50, :);
+S2trB2 = D(91:140, :);
+S2tB1 = D(51:90, :);
+S2tB2 = D(141:180, :);
+S2tr  =  [S2trB1, 1;
+          S2trB2, 2];
+S2t   =  [S2tB1, 1;
+          S2tB2, 2];
+S2tr = S2tr(randperm(size(S2tr, 1)), :);  % Shuffle the training set
+S2t = S2t(randperm(size(S2t, 1)), :);  % Shuffle the test set
+S2trD = S2tr(:, 1:end-1);  % Training data
+S2trL = S2tr(:, end);  % Training labels
+S2tD = S2t(:, 1:end-1);  % Test data
+S2tL = S2t(:, end);  % Test labels
 nexttile;
-h1 = plot(lam, D(1:30, :), 'y'); hold on; 
-h2 = plot(lam, D(31:60, :), 'g');
+h1 = plot(lam, D(1:90, :), 'y'); hold on; 
+h2 = plot(lam, D(91:180, :), 'g');
 legend([h1(1), h2(1)], {'PUT', 'TYR'});
 xlabel('lambda'); ylabel('ABS');
 title("SC6");
 
 nexttile;
 [~,Sc, ~, ~, explained] = pca(D);
-plot(Sc(1:30,1),Sc(1:30,2),'r*');hold on; plot(Sc(31:60,1),Sc(31:60,2),'b*')
+plot(Sc(1:90,1),Sc(1:90,2),'r*');hold on; plot(Sc(91:180,1),Sc(91:180,2),'b*')
 xlabel("PC1 " + explained(1)); ylabel("PC2 " + explained(2));
 title(['Single(SC6)']);
 
 fig2 = figure(3);
 D = [IDA_D{1}, IDA_D{3}; IDA_D{2},IDA_D{4}];
+AtrB1 = D(1:50, :);
+AtrB2 = D(91:140, :);
+AtB1 = D(51:90, :);
+AtB2 = D(141:180, :);
+Atr  =  [AtrB1, 1;
+         AtrB2, 2];
+At   =  [AtB1, 1;
+         AtB2, 2];
+Atr = Atr(randperm(size(Atr, 1)), :);  % Shuffle the training set
+At = At(randperm(size(At, 1)), :);  % Shuffle the test set
+AtrD = Atr(:, 1:end-1);  % Training data
+AtrL = Atr(:, end);  % Training labels
+AtD = At(:, 1:end-1);  % Test data
+AtL = At(:, end);  % Test labels
 [~,Sc, ~, ~, explained] = pca(D);
-plot(Sc(1:30,1),Sc(1:30,2),'r*');hold on; plot(Sc(31:60,1),Sc(31:60,2),'b*')
+plot(Sc(1:90,1),Sc(1:90,2),'r*');hold on; plot(Sc(91:180,1),Sc(91:180,2),'b*')
 xlabel("PC1 " + explained(1)); ylabel("PC2 " + explained(2));
 title(['Array']);
