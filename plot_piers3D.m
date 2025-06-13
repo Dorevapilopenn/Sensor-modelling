@@ -50,10 +50,10 @@ S1trB1 = D(1:50, :)
 S1trB2 = D(91:140, :);
 S1tB1 = D(51:90, :);
 S1tB2 = D(141:180, :);
-S1tr  =  [S1trB1, 1;
-          S1trB2, 2];
-S1t   =  [S1tB1, 1;
-          S1tB2, 2];
+S1tr  =  [S1trB1, 1*ones(50, 1);
+          S1trB2, 2*ones(50, 1)];
+S1t   =  [S1tB1, 1*ones(40, 1);
+          S1tB2, 2*ones(40, 1)];
 S1tr = S1tr(randperm(size(S1tr, 1)), :);  % Shuffle the training set
 S1t = S1t(randperm(size(S1t, 1)), :);  % Shuffle the test set
 S1trD = S1tr(:, 1:end-1);  % Training data
@@ -84,10 +84,10 @@ S2trB1 = D(1:50, :);
 S2trB2 = D(91:140, :);
 S2tB1 = D(51:90, :);
 S2tB2 = D(141:180, :);
-S2tr  =  [S2trB1, 1;
-          S2trB2, 2];
-S2t   =  [S2tB1, 1;
-          S2tB2, 2];
+S2tr  =  [S2trB1, 1*ones(50, 1);
+          S2trB2, 2*ones(50, 1)];
+S2t   =  [S2tB1, 1*ones(40, 1);
+          S2tB2, 2*ones(40, 1)];
 S2tr = S2tr(randperm(size(S2tr, 1)), :);  % Shuffle the training set
 S2t = S2t(randperm(size(S2t, 1)), :);  % Shuffle the test set
 S2trD = S2tr(:, 1:end-1);  % Training data
@@ -113,10 +113,10 @@ AtrB1 = D(1:50, :);
 AtrB2 = D(91:140, :);
 AtB1 = D(51:90, :);
 AtB2 = D(141:180, :);
-Atr  =  [AtrB1, 1;
-         AtrB2, 2];
-At   =  [AtB1, 1;
-         AtB2, 2];
+Atr  =  [AtrB1, 1*ones(50, 1);
+          AtrB2, 2*ones(50, 1)];
+At   =  [AtB1, 1*ones(40, 1);
+          AtB2, 2*ones(40, 1)];
 Atr = Atr(randperm(size(Atr, 1)), :);  % Shuffle the training set
 At = At(randperm(size(At, 1)), :);  % Shuffle the test set
 AtrD = Atr(:, 1:end-1);  % Training data
