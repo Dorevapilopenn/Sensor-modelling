@@ -46,7 +46,7 @@ xlabel('lambda'); ylabel('ABS');
 title("SC4");
 
 D = [IDA_D{1}; IDA_D{2}];
-S1trB1 = D(1:50, :)
+S1trB1 = D(1:50, :);
 S1trB2 = D(91:140, :);
 S1tB1 = D(51:90, :);
 S1tB2 = D(141:180, :);
