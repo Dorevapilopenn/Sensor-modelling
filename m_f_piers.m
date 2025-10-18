@@ -1,14 +1,14 @@
-function [Ceq, f, Cc, a, spec] =IDA_function(c_0, ph, ph2)
-    spec_names = {'A' 'B' 'C' 'CH' 'AB' 'AC' 'ACH'}; % species names
-    Model      = [ 1   0   0   0    1    1    1    ; ...  % A
-                   0   1   0   0    1    0    0    ; ...  % B
-                   0   0   1   1    0    1    1    ];     % C
-    absorbing  = [ 0   0   1   1    0    1    1    ];
+function [Ceq, f, Cc, a, spec] =m_function(c_0, ph, ph2)
+    spec_names = {'A' 'B' 'C' 'CH' 'AB' 'AC' 'ACH' 'BC'}; % species names
+    Model      = [ 1   0   0   0    1    1    1     0; ...  % A
+                   0   1   0   0    1    0    0     1; ...  % B
+                   0   0   1   1    0    1    1     1];     % C
+    absorbing  = [ 0   0   1   1    0    1    1     1]; % species that absorb light
     
-    beta = [0, 0, 0,  6.72-ph, 5.46, 2.99, 10.67-ph;...
-            0, 0, 0,  6.72-ph, 3.01, 2.99, 10.67-ph;...
-            0, 0, 0,  6.72-ph2, 4.88, 2.51, 10.3-ph2 ;...
-            0, 0, 0,  6.72-ph2, 3.03, 2.51, 10.3-ph2];
+    beta = [0, 0, 0,  6.72-ph, 5.46, 2.99, 10.67-ph,  3.5;...
+            0, 0, 0,  6.72-ph, 3.01, 2.99, 10.67-ph,  3.2;...
+            0, 0, 0,  6.72-ph2, 4.88, 2.51, 10.3-ph2, 3.5 ;...
+            0, 0, 0,  6.72-ph2, 3.03, 2.51, 10.3-ph2, 3.2];
 
     beta_f= 10.^beta;
     nsamp= 90; % number of samples
@@ -33,7 +33,7 @@ function [Ceq, f, Cc, a, spec] =IDA_function(c_0, ph, ph2)
     end
 
     % Generation of spectra
-    A = piers_spectra_IDA();
+    A = piers_spectra_m();
     % Simulate the measurements
     randn('state',0);
     D_meas = cell(1,4);

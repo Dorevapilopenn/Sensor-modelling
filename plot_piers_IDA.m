@@ -2,7 +2,7 @@
 vals = GUI_piers();  % Get values from GUI
 C_0 = [vals(3) vals(4) vals(5) vals(6) vals(7)];  % conc A, B1, B2, C respectively
 [C_eq, IDA_D, IDA_c, Ia,  A] = IDA_f_piers(C_0, vals(1), vals(2))
-lgnd= ["C", "CH+", "AC", "ACH+"];
+lgnd= ["D", "D-protonated", "HD", "HD-protonated"];
 
 lam= 330:1:600;  % Define the wavelength range
 % Plotting
@@ -15,25 +15,25 @@ nexttile;
 plot(IDA_c{1}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC4PUT");
+title("Sensor1-G1");
 
 nexttile;
 plot(IDA_c{2}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC4TYR");
+title("Sensor1-G2");
 
 nexttile;
 plot(IDA_c{3}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC6PUT");
+title("Sensor2-G1");
 
 nexttile;
 plot(IDA_c{4}, '.-');
 legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
-title("SC6TYR");
+title("Sensor2-G2");
 
 fig1 = figure(2);
 % Create a tiled layout (2x3) with compact spacing.
@@ -43,7 +43,7 @@ nexttile;
 plot(lam,A{1},'.-');
 legend(lgnd);
 xlabel('lambda'); ylabel('ABS');
-title("SC4");
+title("Sensor1");
 
 D = [IDA_D{1}; IDA_D{2}];
 S1trB1 = D(1:50, :);
@@ -63,21 +63,21 @@ S1tL = S1t(:, end);  % Test labels
 nexttile;
 h1 = plot(lam, D(1:90, :), 'y'); hold on; 
 h2 = plot(lam, D(91:180, :), 'g');
-legend([h1(1), h2(1)], {'PUT', 'TYR'});
+legend([h1(1), h2(1)], {'G1', 'G2'});
 xlabel('lambda'); ylabel('ABS');
-title("SC4");
+title("Sensor1");
 
 nexttile;
 [~,Sc, ~, ~, explained] = pca(D);
 plot(Sc(1:90,1),Sc(1:90,2),'r*');hold on; plot(Sc(91:180,1),Sc(91:180,2),'b*')
 xlabel("PC1 " + explained(1)); ylabel("PC2 " + explained(2));
-title(['Single(SC4)']);
+title(['Single(H1)']);
 
 nexttile;
 plot(lam,A{2},'.-');
 legend(lgnd);
 xlabel('lambda'); ylabel('ABS');
-title("SC6");
+title("Sensor2");
 
 D = [IDA_D{3}; IDA_D{4}];
 S2trB1 = D(1:50, :);
@@ -97,15 +97,15 @@ S2tL = S2t(:, end);  % Test labels
 nexttile;
 h1 = plot(lam, D(1:90, :), 'y'); hold on; 
 h2 = plot(lam, D(91:180, :), 'g');
-legend([h1(1), h2(1)], {'PUT', 'TYR'});
+legend([h1(1), h2(1)], {'G1', 'G2'});
 xlabel('lambda'); ylabel('ABS');
-title("SC6");
+title("Sensor2");
 
 nexttile;
 [~,Sc, ~, ~, explained] = pca(D);
 plot(Sc(1:90,1),Sc(1:90,2),'r*');hold on; plot(Sc(91:180,1),Sc(91:180,2),'b*')
 xlabel("PC1 " + explained(1)); ylabel("PC2 " + explained(2));
-title(['Single(SC6)']);
+title(['Single(H2)']);
 
 fig2 = figure(3);
 D = [IDA_D{1}, IDA_D{3}; IDA_D{2},IDA_D{4}];
