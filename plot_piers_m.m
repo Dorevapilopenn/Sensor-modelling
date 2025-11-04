@@ -35,7 +35,7 @@ legend(lgnd);
 xlabel('# Samples'); ylabel('[species]');
 title("Sensor2-G2");
 
-fig1 = figure(2);
+fig2 = figure(2);
 % Create a tiled layout (2x3) with compact spacing.
 t = tiledlayout(2, 3, 'TileSpacing', 'Compact', 'Padding', 'Compact');
 
@@ -107,7 +107,7 @@ plot(Sc(1:90,1),Sc(1:90,2),'r*');hold on; plot(Sc(91:180,1),Sc(91:180,2),'b*')
 xlabel("PC1 " + explained(1)); ylabel("PC2 " + explained(2));
 title(['Single(H2)']);
 
-fig2 = figure(3);
+fig3 = figure(3);
 D = [IDA_D{1}, IDA_D{3}; IDA_D{2},IDA_D{4}];
 AtrB1 = D(1:50, :);
 AtrB2 = D(91:140, :);
@@ -127,3 +127,10 @@ AtL = At(:, end);  % Test labels
 plot(Sc(1:90,1),Sc(1:90,2),'r*');hold on; plot(Sc(91:180,1),Sc(91:180,2),'b*')
 xlabel("PC1 " + explained(1)); ylabel("PC2 " + explained(2));
 title(['Array']);
+path = 'D:\Artin\sensor\piers\standard';
+exportgraphics(fig1, fullfile(path, 'fig1.png'), 'Resolution', 300);
+exportgraphics(fig2, fullfile(path, 'fig2.png'), 'Resolution', 300);
+exportgraphics(fig3, fullfile(path, 'fig3.png'), 'Resolution', 300);
+save('D:\Artin\sensor\piers\standard\dat.mat',  'S1trD', 'S1trL', 'S1tD', 'S1tL', ...
+        'S2trD', 'S2trL', 'S2tD', 'S2tL', ...
+        'AtrD', 'AtrL', 'AtD', 'AtL');

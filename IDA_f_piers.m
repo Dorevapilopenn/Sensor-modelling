@@ -5,15 +5,15 @@ function [Ceq, f, Cc, a, spec] =IDA_function(c_0, ph, ph2)
                    0   0   1   1    0    1    1    ];     % C
     absorbing  = [ 0   0   1   1    0    1    1    ];
     
-    beta = [0, 0, 0,  6.72-ph, 5.46, 2.99, 10.67-ph;...
-            0, 0, 0,  6.72-ph, 3.01, 2.99, 10.67-ph;...
-            0, 0, 0,  6.72-ph2, 4.88, 2.51, 10.3-ph2 ;...
-            0, 0, 0,  6.72-ph2, 3.03, 2.51, 10.3-ph2];
+    beta = [0, 0, 0,  6.72-ph, 6.5, 2.5, 10.67-ph;...
+            0, 0, 0,  6.72-ph, 4.5, 2.5, 10.67-ph;...
+            0, 0, 0,  6.72-ph2, 6, 2, 10.3-ph2 ;...
+            0, 0, 0,  6.72-ph2, 4, 2, 10.3-ph2];
 
     beta_f= 10.^beta;
     nsamp= 90; % number of samples
     C_tot_A=[c_0(1,1)*ones(nsamp,1), c_0(1,2)*ones(nsamp,1)];
-    C_tot_B=[c_0(1,3)*(0.1*10.^(2*rand(nsamp,1))), c_0(1,4)*(0.1*10.^(2*rand(nsamp,1)))]; % G concentration
+    C_tot_B=[c_0(1,3)*(sqrt(10)*10.^(rand(nsamp,1))), c_0(1,4)*(sqrt(10)*10.^(rand(nsamp,1)))]; % G concentration
     C_tot_C=c_0(1,5)*ones(nsamp,1);
     C_eq  = cell(1, 4);
     for i=1:4
@@ -45,7 +45,7 @@ function [Ceq, f, Cc, a, spec] =IDA_function(c_0, ph, ph2)
         else
             D_calc = C_colored*A{2};
         end
-        D_meas{i} = D_calc + 0.001*max(D_calc(:))*randn(size(D_calc));
+        D_meas{i} = D_calc + 0.005*max(D_calc(:))*randn(size(D_calc));
         C_C{i} = C_colored;
     end 
     spec = A;
