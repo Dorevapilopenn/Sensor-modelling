@@ -13,7 +13,7 @@ function [Ceq, f, Cc, a] =IDA_function(const)
     beta_f= 10.^beta;
     nsamp= 90; % number of samples
     C_tot_A= 0.002*ones(nsamp,1);
-    C_tot_B= [c_0(1,3)*(sqrt(10)*10.^(rand(nsamp,1))), c_0(1,4)*(sqrt(10)*10.^(rand(nsamp,1)))]; % G concentration
+    C_tot_B= [0.0001*(sqrt(10)*10.^(rand(nsamp,1))), 0.0001*(sqrt(10)*10.^(rand(nsamp,1)))]; % G concentration
     C_tot_C= 0.002*ones(nsamp,1);
     C_eq  = cell(1, 4);
     for i=1:4
@@ -39,7 +39,11 @@ function [Ceq, f, Cc, a] =IDA_function(const)
     C_C=cell(1,4);
     for i=1:4
         C_colored= C_eq{i}(:, find(absorbing));
-        D_calc = C_colored*A;
+        if i<3
+            D_calc = C_colored*A{1};
+        else
+            D_calc = C_colored*A{2};
+        end
         D_meas{i} = D_calc + 0.005*max(D_calc(:))*randn(size(D_calc));
         C_C{i} = C_colored;
     end 

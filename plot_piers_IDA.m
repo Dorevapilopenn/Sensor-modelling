@@ -1,7 +1,7 @@
 % filepath: c:\Users\Propanone\Desktop\Programming\Sensor\Modelling\Sensor-modelling\plot_piers.m
 vals = GUI_piers();  % Get values from GUI
 C_0 = [vals(3) vals(4) vals(5) vals(6) vals(7)];  % conc A, B1, B2, C respectively
-[C_eq, IDA_D, IDA_c, Ia,  A] = IDA_f_piers(C_0, vals(1), vals(2))
+[C_eq, IDA_D, IDA_c, Ia,  A] = IDA_f_piers(C_0, vals(1), vals(2));
 lgnd= ["D", "D-protonated", "HD", "HD-protonated"];
 
 lam= 330:1:600;  % Define the wavelength range
