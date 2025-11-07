@@ -1,12 +1,12 @@
 % Initialize parallel pool if not already running
 if isempty(gcp('nocreate'))
-    parpool('local', 100); % Replace 12 with your desired number of workers
+    parpool('local', 6); % Replace 12 with your desired number of workers
 end
 
 % Load data
-vals = load('cons3.mat');
+vals = load('cons9.mat');
 A = vals.A;  % Extract matrix A from the structure
-
+D = [(A(:,2)-A(:,1)), (A(:,3)-A(:,2)), (A(:,4)-A(:,1)), (A(:,5)-A(:,4)), (A(:,6)-A(:,5))];  % Preallocate D matrix
 % Get the number of rows explicitly
 numRows = size(A, 1);
 if ~isscalar(numRows)
@@ -68,8 +68,8 @@ end
 fprintf('\nProcessing complete!\n');
 
 % Combine and sort results
-C = [A, B];
-C_sorted = sortrows(C, 7, 'descend');
+C = [A, D, B];
+C_sorted = sortrows(C, 12, 'descend');
 
 % Save results
-save('cons3_sorted.mat', 'C_sorted');
+save('cons9_sorted.mat', 'C_sorted');
