@@ -1,12 +1,11 @@
 function combinedMatrix = generateSymmetricKfs(P)
-% GENERATESYMMETRICKFS Generates optimized matrix of unique combinations
-% for a 6-component sensor system with symmetrical pairs.
+% GENERATESYMMETRICKFS Generates matrix of combinations for 6-component sensor
+% Format: [H1 | (a,b) | H2 H3 H4] where:
+%   H1: single host from P
+%   (a,b): unique symmetrical pairs from P
+%   H2,H3,H4: single hosts from P
 %
-% Optimized version with:
-% - Preallocated arrays
-% - Vectorized operations
-% - Reduced memory usage
-% - Improved performance for large P
+% Expected rows: N^5*(N+1)/2 where N = length(P)
 
     % Input validation and conversion to column vector
     validateattributes(P, {'numeric'}, {'vector', 'real', 'finite'});
@@ -14,59 +13,49 @@ function combinedMatrix = generateSymmetricKfs(P)
     N = length(P);
     
     % Pre-calculate array sizes
-    numUniquePairs = N * (N + 1) / 2;
-    numHD = N * N;
-    numHG = numUniquePairs * numUniquePairs;
-    totalRows = numHD * numHG;
+    numUniquePairs = N * (N + 1) / 2;  % For (a,b) pairs
+    numSingleHosts = N^4;               % For H1,H2,H3,H4
+    totalRows = numSingleHosts * numUniquePairs;
     
     % Preallocate final matrix
     combinedMatrix = zeros(totalRows, 6, 'like', P);
     
-    % --- 1. Generate Host-Dye (HD) Combinations more efficiently ---
-    [A_idx, B_idx] = ndgrid(1:N);
-    
-    % --- 2. Generate Unique Symmetrical Host-Guest Pairs ---
-    % Preallocate uniquePairs
-    uniquePairs = zeros(numUniquePairs, 2, 'like', P);
-    idx = 1;
-    
-    % Vectorized unique pairs generation
+    % Generate unique symmetrical pairs once
     [i, j] = find(triu(ones(N)));
-    uniquePairs(:,1) = P(i);
-    uniquePairs(:,2) = P(j);
+    uniquePairs = [P(i), P(j)];  % All possible (a,b) pairs
     
-    % --- 3 & 4. Combined HD and HG matrix generation ---
-    % Use block processing to reduce memory usage
-    blockSize = min(1e6, totalRows);  % Adjust based on available memory
+    % Use block processing for memory efficiency
+    blockSize = min(1e6, totalRows);
     numBlocks = ceil(totalRows/blockSize);
+    
+    % Pre-generate index matrices for single hosts
+    [H1_idx, H2_idx, H3_idx, H4_idx] = ndgrid(1:N);
+    H_indices = [H1_idx(:), H2_idx(:), H3_idx(:), H4_idx(:)];
     
     for block = 1:numBlocks
         startIdx = (block-1)*blockSize + 1;
         endIdx = min(block*blockSize, totalRows);
-        blockRows = endIdx - startIdx + 1;
         
         % Calculate indices for this block
-        [hdIdx, hgIdx] = ind2sub([numHD, numHG], (startIdx:endIdx)');
+        [hostIdx, pairIdx] = ind2sub([numSingleHosts, numUniquePairs], (startIdx:endIdx)');
         
-        % Get HD combinations for this block
-        combinedMatrix(startIdx:endIdx, 1) = P(A_idx(hdIdx));  % A
-        combinedMatrix(startIdx:endIdx, 4) = P(B_idx(hdIdx));  % B
+        % Set single host columns (1,4,5,6)
+        host_block_idx = mod(hostIdx-1, size(H_indices,1)) + 1;
+        combinedMatrix(startIdx:endIdx, 1) = P(H_indices(host_block_idx, 1));    % H1
+        combinedMatrix(startIdx:endIdx, 4:6) = P(H_indices(host_block_idx, 2:4)); % H2,H3,H4
         
-        % Get HG combinations for this block
-        [ab_idx, cd_idx] = ind2sub([numUniquePairs, numUniquePairs], hgIdx);
-        
-        combinedMatrix(startIdx:endIdx, 2:3) = uniquePairs(ab_idx, :);  % a,b
-        combinedMatrix(startIdx:endIdx, 5:6) = uniquePairs(cd_idx, :);  % c,d
+        % Set unique pair columns (2,3)
+        combinedMatrix(startIdx:endIdx, 2:3) = uniquePairs(pairIdx, :);
     end
     
-    % --- 5. Verification ---
-    expectedRows = (N^4 * (N+1)^2) / 4;
+    % Verification
+    expectedRows = (N^5 * (N+1)) / 2;
     actualRows = size(combinedMatrix, 1);
     
-    % Use more efficient string formatting
-    fprintf('Unique Host-Guest pairs (a,b): %d\n', numUniquePairs);
-    fprintf('Actual rows generated: %d\n', actualRows);
-    fprintf('Expected rows (N^4*(N+1)^2/4): %d\n', expectedRows);
+    fprintf('Matrix generated:\n');
+    fprintf('  Unique pairs (a,b): %d\n', numUniquePairs);
+    fprintf('  Single host combinations: %d\n', numSingleHosts);
+    fprintf('  Total rows: %d (expected: %d)\n', actualRows, expectedRows);
     
     if actualRows ~= expectedRows
         warning('MATLAB:RowMismatch', ...

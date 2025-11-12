@@ -1,4 +1,4 @@
-function [Ceq, f, Cc, a] =IDA_function(const)
+function [Ceq, f, Cc, a] =IDA_function(const, Cs, C0)
     spec_names = {'H' 'G' 'D' 'HD' 'HG'}; % species names
     Model      = [ 1   0   0   1    1; ...  % H
                    0   1   0   0    1; ...  % G
@@ -12,9 +12,9 @@ function [Ceq, f, Cc, a] =IDA_function(const)
 
     beta_f= 10.^beta;
     nsamp= 90; % number of samples
-    C_tot_A= 0.002*ones(nsamp,1);
-    C_tot_B= [0.0001*(sqrt(10)*10.^(rand(nsamp,1))), 0.0001*(sqrt(10)*10.^(rand(nsamp,1)))]; % G concentration
-    C_tot_C= 0.002*ones(nsamp,1);
+    C_tot_A= Cs*ones(nsamp,1);
+    C_tot_B= [C0*(sqrt(.1)*10.^(rand(nsamp,1))), C0*(sqrt(.1)*10.^(rand(nsamp,1)))]; % G concentration
+    C_tot_C= Cs*ones(nsamp,1);
     C_eq  = cell(1, 4);
     for i=1:4
         clear C

@@ -22,7 +22,7 @@ parfor i = 1:numRows
     cons = A(i, :);
     
     % Calculate IDA response
-    [~, f, ~, ~] = IDA_f(cons);
+    [~, f, ~, ~] = IDA_f(cons, 0.01, 0.0002);
     
     % Construct D matrix efficiently
     D = [f{1}, f{3}; f{2}, f{4}];
