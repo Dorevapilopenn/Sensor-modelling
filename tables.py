@@ -17,6 +17,18 @@ def save_corr_table(df, outpath):
     tbl = ax.table(cellText=np.round(corr_table.values,3),
                    rowLabels=corr_table.index, colLabels=corr_table.columns, loc='center')
     tbl.auto_set_font_size(False); tbl.set_fontsize(9); tbl.scale(1,1.4)
+
+    # add grid lines: set edgecolor and linewidth for all cells
+    for (r, c), cell in tbl.get_celld().items():
+        cell.set_edgecolor('k')
+        cell.set_linewidth(0.5)
+        # emphasize header cells (column headers at row index -1, row labels at col index -1)
+        if r == -1 or c == -1:
+            cell.set_facecolor('#f0f0f0')
+            cell.set_text_props(weight='bold')
+
+    # ensure grid is visible on white backgrounds
+    ax.set_facecolor('white')
     plt.savefig(outpath, dpi=300, bbox_inches='tight'); plt.close(fig)
     return outpath
 
@@ -28,28 +40,39 @@ def make_heatmap_mean(df, xcol, ycol, zcol, outpath, max_bins=40):
     ux = np.unique(np.sort(xvals))
     uy = np.unique(np.sort(yvals))
     if len(ux) <= max_bins:
-        x_bins = np.concatenate([ux, [ux[-1]+1e-6]])
+        x_edges = np.concatenate([ux, [ux[-1]+1e-6]])
         x_centers = ux
     else:
-        x_bins = np.quantile(xvals, np.linspace(0,1,max_bins+1))
-        x_centers = 0.5*(x_bins[:-1]+x_bins[1:])
+        x_edges = np.quantile(xvals, np.linspace(0,1,max_bins+1))
+        x_centers = 0.5*(x_edges[:-1]+x_edges[1:])
     if len(uy) <= max_bins:
-        y_bins = np.concatenate([uy, [uy[-1]+1e-6]])
+        y_edges = np.concatenate([uy, [uy[-1]+1e-6]])
         y_centers = uy
     else:
-        y_bins = np.quantile(yvals, np.linspace(0,1,max_bins+1))
-        y_centers = 0.5*(y_bins[:-1]+y_bins[1:])
+        y_edges = np.quantile(yvals, np.linspace(0,1,max_bins+1))
+        y_centers = 0.5*(y_edges[:-1]+y_edges[1:])
     H = np.full((len(y_centers), len(x_centers)), np.nan)
     for i in range(len(x_centers)):
         for j in range(len(y_centers)):
-            mask = (xvals >= x_bins[i]) & (xvals < x_bins[i+1]) & (yvals >= y_bins[j]) & (yvals < y_bins[j+1])
+            mask = (xvals >= x_edges[i]) & (xvals < x_edges[i+1]) & (yvals >= y_edges[j]) & (yvals < y_edges[j+1])
             if mask.sum() > 0:
                 H[j,i] = np.nanmean(zvals[mask])
-    # plot
+    # plot using pcolormesh then overlay grid lines
     fig, ax = plt.subplots(figsize=(6,5))
-    im = ax.imshow(H, origin='lower', aspect='auto', extent=[x_centers[0], x_centers[-1], y_centers[0], y_centers[-1]])
+    pcm = ax.pcolormesh(x_edges, y_edges, np.nan_to_num(H, nan=np.nan), shading='auto', cmap='viridis')
     ax.set_xlabel(xcol); ax.set_ylabel(ycol); ax.set_title(f"Mean {zcol} vs {xcol} & {ycol}")
-    plt.colorbar(im, ax=ax, label=zcol)
+    plt.colorbar(pcm, ax=ax, label=zcol)
+
+    # draw thin grid lines at bin edges for readability
+    for xe in x_edges:
+        ax.axvline(x=xe, color='k', linewidth=0.25, alpha=0.6)
+    for ye in y_edges:
+        ax.axhline(y=ye, color='k', linewidth=0.25, alpha=0.6)
+
+    # tighten axis to match edges
+    ax.set_xlim(x_edges[0], x_edges[-1])
+    ax.set_ylim(y_edges[0], y_edges[-1])
+
     plt.savefig(outpath, dpi=300, bbox_inches='tight'); plt.close(fig)
     return outpath
 
@@ -78,9 +101,19 @@ def make_strat_corr(df, xcol, ycol, var_corr, target, outpath, xbins=20, ybins=2
                     r = pearsonr(vals1, vals2)[0]
                 H[j,i] = r
     fig, ax = plt.subplots(figsize=(6,5))
-    im = ax.imshow(H, origin='lower', aspect='auto', extent=[x_centers[0], x_centers[-1], y_centers[0], y_centers[-1]], vmin=-1, vmax=1)
+    pcm = ax.pcolormesh(x_edges, y_edges, np.nan_to_num(H, nan=np.nan), shading='auto', cmap='RdBu_r', vmin=-1, vmax=1)
     ax.set_xlabel(xcol); ax.set_ylabel(ycol); ax.set_title(f"corr({var_corr},{target}) across {xcol} & {ycol}")
-    plt.colorbar(im, ax=ax, label=f"corr({var_corr},{target})")
+    plt.colorbar(pcm, ax=ax, label=f"corr({var_corr},{target})")
+
+    # overlay grid lines for cell boundaries
+    for xe in x_edges:
+        ax.axvline(x=xe, color='k', linewidth=0.25, alpha=0.6)
+    for ye in y_edges:
+        ax.axhline(y=ye, color='k', linewidth=0.25, alpha=0.6)
+
+    ax.set_xlim(x_edges[0], x_edges[-1])
+    ax.set_ylim(y_edges[0], y_edges[-1])
+
     plt.savefig(outpath, dpi=300, bbox_inches='tight'); plt.close(fig)
     return outpath
 
