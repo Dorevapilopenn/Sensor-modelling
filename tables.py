@@ -69,6 +69,18 @@ def make_heatmap_mean(df, xcol, ycol, zcol, outpath, max_bins=40):
     for ye in y_edges:
         ax.axhline(y=ye, color='k', linewidth=0.25, alpha=0.6)
 
+    # set ticks to match actual data increments (use centers when many unique values)
+    if len(x_centers) <= 20:
+        ax.set_xticks(x_centers)
+        ax.set_xticklabels([f"{v:.3g}" for v in x_centers], rotation=45, ha='right')
+    else:
+        ax.xaxis.set_major_locator(plt.MaxNLocator(6))
+    if len(y_centers) <= 20:
+        ax.set_yticks(y_centers)
+        ax.set_yticklabels([f"{v:.3g}" for v in y_centers])
+    else:
+        ax.yaxis.set_major_locator(plt.MaxNLocator(6))
+
     # tighten axis to match edges
     ax.set_xlim(x_edges[0], x_edges[-1])
     ax.set_ylim(y_edges[0], y_edges[-1])
@@ -86,6 +98,9 @@ def make_strat_corr(df, xcol, ycol, var_corr, target, outpath, xbins=20, ybins=2
     except Exception:
         x_edges = np.linspace(np.min(xvals), np.max(xvals), xbins+1)
         y_edges = np.linspace(np.min(yvals), np.max(yvals), ybins+1)
+    # also track actual unique data increments
+    ux = np.unique(np.sort(xvals))
+    uy = np.unique(np.sort(yvals))
     x_centers = 0.5*(x_edges[:-1]+x_edges[1:])
     y_centers = 0.5*(y_edges[:-1]+y_edges[1:])
     H = np.full((len(y_centers), len(x_centers)), np.nan)
@@ -111,6 +126,23 @@ def make_strat_corr(df, xcol, ycol, var_corr, target, outpath, xbins=20, ybins=2
     for ye in y_edges:
         ax.axhline(y=ye, color='k', linewidth=0.25, alpha=0.6)
 
+    # set ticks to match actual increments where reasonable
+    if len(ux) <= max(20, len(x_edges)):
+        # prefer showing the actual unique data increments if not too many
+        # align ticks to data values (centers may equal ux when unique-based bins were used)
+        tick_pos_x = ux if len(ux) <= 30 else x_centers
+        ax.set_xticks(tick_pos_x)
+        ax.set_xticklabels([f"{v:.3g}" for v in tick_pos_x], rotation=45, ha='right')
+    else:
+        ax.xaxis.set_major_locator(plt.MaxNLocator(6))
+
+    if len(uy) <= max(20, len(y_edges)):
+        tick_pos_y = uy if len(uy) <= 30 else y_centers
+        ax.set_yticks(tick_pos_y)
+        ax.set_yticklabels([f"{v:.3g}" for v in tick_pos_y])
+    else:
+        ax.yaxis.set_major_locator(plt.MaxNLocator(6))
+
     ax.set_xlim(x_edges[0], x_edges[-1])
     ax.set_ylim(y_edges[0], y_edges[-1])
 
@@ -118,20 +150,20 @@ def make_strat_corr(df, xcol, ycol, var_corr, target, outpath, xbins=20, ybins=2
     return outpath
 
 # Load datasets
-df_P = pd.read_csv("cons9_sortedP.csv", header=None)
-df_N = pd.read_csv("cons9_sortedN.csv", header=None)
-df_U = pd.read_csv("cons9_sortedU.csv", header=None)
+df_P = pd.read_csv("cons9U_sortedP.csv", header=None)
+df_N = pd.read_csv("cons9U_sortedN.csv", header=None)
+df_U = pd.read_csv("cons9U_sortedU.csv", header=None)
 # Assign column names per confirmation
-cols = ["K1","K2","K3","K4","K5","K6",
+cols = ["K1","K2","K3","K4","K5","K6", "meanHD",
         "deltaD1","deltaK1","deltaHD","deltaD2","deltaK2",
         "Et","Class1","Class2"]
-df_P.columns = cols
+df_U.columns = cols
+df_P.columns = cols 
 df_N.columns = cols
-df_U.columns = cols 
 
 datasets = {"P":df_P, "N":df_N, "U":df_U}
 
-out_root = "outputs_30plots"
+out_root = "outputs_30plotsU"
 ensure_dir(out_root)
 
 results = {}
@@ -143,17 +175,16 @@ for key, df in datasets.items():
     save_corr_table(df, tbl_path)
     results[f"{key}_table"] = tbl_path
     # 9 plots as specified
-    p1 = os.path.join(out_dir, f"{key}_Et_K1_K2.png"); make_heatmap_mean(df, "K1","K2","Et", p1)
-    p2 = os.path.join(out_dir, f"{key}_Et_deltaHD_K1.png"); make_heatmap_mean(df, "deltaHD","K1","Et", p2)
+    p1 = os.path.join(out_dir, f"{key}_Et_MeanHD_deltaHD.png"); make_heatmap_mean(df, "meanHD","deltaHD","Et", p1)
+    p2 = os.path.join(out_dir, f"{key}_Et_deltaD1_deltaD2.png"); make_heatmap_mean(df, "deltaD1","deltaD2","Et", p2)
     p3 = os.path.join(out_dir, f"{key}_Et_deltaK1_deltaK2.png"); make_heatmap_mean(df, "deltaK1","deltaK2","Et", p3)
-    p4a = os.path.join(out_dir, f"{key}_Et_deltaK1_K2.png"); make_heatmap_mean(df, "deltaK1","K2","Et", p4a)
-    p4b = os.path.join(out_dir, f"{key}_Et_deltaK2_K5.png"); make_heatmap_mean(df, "deltaK2","K5","Et", p4b)
     p5a = os.path.join(out_dir, f"{key}_Et_deltaD1_K1.png"); make_heatmap_mean(df, "deltaD1","K1","Et", p5a)
     p5b = os.path.join(out_dir, f"{key}_Et_deltaD2_K4.png"); make_heatmap_mean(df, "deltaD2","K4","Et", p5b)
     p6 = os.path.join(out_dir, f"{key}_corr_deltaK1_vs_Et_K1_deltaD1.png"); make_strat_corr(df, "K1","deltaD1","deltaK1","Et", p6)
     p7 = os.path.join(out_dir, f"{key}_corr_deltaK2_vs_Et_K4_deltaD2.png"); make_strat_corr(df, "K4","deltaD2","deltaK2","Et", p7)
-    p8 = os.path.join(out_dir, f"{key}_Et_K1_K4.png"); make_heatmap_mean(df, "K1","K4","Et", p8)
-    results[key] = [tbl_path, p1,p2,p3,p4a,p4b,p5a,p5b,p6,p7,p8]
+    p9a = os.path.join(out_dir, f"{key}_Et_deltaK1_deltaD1.png"); make_heatmap_mean(df, "deltaK1","deltaD1","Et", p9a)
+    p9b = os.path.join(out_dir, f"{key}_Et_deltaK2_deltaD2.png"); make_heatmap_mean(df, "deltaK2","deltaD2","Et", p9b)
+    results[key] = [tbl_path, p1,p2,p3,p5a,p5b,p6,p7,p9a,p9b]
 
 # Flatten results and print paths
 all_files = []

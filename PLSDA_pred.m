@@ -9,8 +9,8 @@ function [ypred, eff_total, eff_class, diagnostics] = plsda_predict(model, Xnew,
 %
 % Outputs:
 %   ypred     - Predicted class labels
-%   eff_total - Overall accuracy (if ytrue provided)
-%   eff_class - Per-class accuracy [K x 1]
+%   eff_total - Overall efficiency (macro-average of per-class efficiency, where per-class efficiency = sqrt(sensitivity * specificity), if ytrue provided)
+%   eff_class - Per-class efficiency (sqrt(sensitivity * specificity)) [K x 1]
 %   diagnostics - Struct with prediction details
 
 % Input validation
@@ -44,22 +44,48 @@ Tsuper = (Yhat_new - model.Yhat_mean_forPCA) * model.pcaCoeff;
 eff_total = [];
 eff_class = [];
 if nargin >= 3 && ~isempty(ytrue)
-    % Vectorized efficiency calculation
-    correct = (ypred == ytrue);
-    eff_total = mean(correct);
-    
-    % Vectorized per-class efficiency
     classes = model.classes;
     K = numel(classes);
     eff_class = NaN(K, 1);
     
-    % Use logical indexing for faster class-wise calculations
+    % Ensure ytrue and ypred are comparable (same type)
+    % ...existing code...
+    
     for k = 1:K
-        mask = (ytrue == classes(k));
-        if any(mask)
-            eff_class(k) = mean(correct(mask));
+        cls = classes(k);
+        pos_mask = (ytrue == cls);    % true positives + false negatives
+        neg_mask = ~pos_mask;         % true negatives + false positives
+        
+        % Counts for positives
+        n_pos = sum(pos_mask);
+        if n_pos > 0
+            tp = sum(ypred(pos_mask) == cls);
+            fn = n_pos - tp;
+            sensitivity = tp / (tp + fn);    % TP / (TP + FN)
+        else
+            sensitivity = NaN;
+        end
+        
+        % Counts for negatives
+        n_neg = sum(neg_mask);
+        if n_neg > 0
+            tn = sum(ypred(neg_mask) ~= cls); % predicted not cls and true not cls
+            fp = n_neg - tn;
+            specificity = tn / (tn + fp);     % TN / (TN + FP)
+        else
+            specificity = NaN;
+        end
+        
+        % Per-class efficiency: geometric mean of sensitivity and specificity
+        if ~isnan(sensitivity) && ~isnan(specificity)
+            eff_class(k) = sqrt(sensitivity * specificity);
+        else
+            eff_class(k) = NaN;
         end
     end
+    
+    % Overall efficiency: macro-average of per-class efficiencies (ignore NaNs)
+    eff_total = mean(eff_class(~isnan(eff_class)));
 end
 
 % Pack diagnostics if requested

@@ -4,9 +4,8 @@ if isempty(gcp('nocreate'))
 end
 
 % Load data
-vals = load('cons9.mat');
+vals = load('cons9U.mat');
 A = vals.A;  % Extract matrix A from the structure
-D = [(A(:,2)-A(:,1)), (A(:,3)-A(:,2)), (A(:,4)-A(:,1)), (A(:,5)-A(:,4)), (A(:,6)-A(:,5))];  % Preallocate D matrix
 % Get the number of rows explicitly
 numRows = size(A, 1);
 if ~isscalar(numRows)
@@ -15,7 +14,6 @@ end
 
 % Preallocate B matrix for storing efficiencies
 B = zeros(numRows, 3);
-
 % Use parfor for parallel processing
 parfor i = 1:numRows
     % Get current combination
@@ -68,8 +66,8 @@ end
 fprintf('\nProcessing complete!\n');
 
 % Combine and sort results
-C = [A, D, B];
-C_sorted = sortrows(C, 12, 'descend');
+C = [A, B];
+C_sorted = sortrows(C, 13, 'descend');
 
 % Save results
-save('cons9_sorted.mat', 'C_sorted');
+save('cons9U_sorted.mat', 'C_sorted');
