@@ -14,6 +14,15 @@ if nargin < 4, doScale = true; end
 if ~isnumeric(X) || ~ismatrix(X)
     error('X must be a numeric matrix');
 end
+
+% Remove NaN/Inf values to prevent rank calculation errors
+bad_rows = any(isnan(X) | isinf(X), 2);
+if any(bad_rows)
+    warning('Removing %d rows with NaN/Inf values from X', sum(bad_rows));
+    X(bad_rows, :) = [];
+    y(bad_rows) = [];
+end
+
 [N, N1] = size(X);
 if N < 2, error('Need at least 2 samples'); end
 
@@ -38,6 +47,8 @@ if doScale
     sX = std(Xc, 0, 1);
     tol = eps(class(X))*max(abs(Xc(:)));
     sX(sX < tol) = 1;  % More robust zero-variance check
+    % Clip extremely large values to prevent overflow
+    sX = max(sX, 1e-10);  % Avoid division by zero
     Xc = Xc ./ sX;
 else
     sX = ones(1, N1);

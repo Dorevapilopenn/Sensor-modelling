@@ -1,0 +1,196 @@
+\documentclass[11pt]{article}
+
+% =========================
+% Packages
+% =========================
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{hyperref}
+
+\onehalfspacing
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=black
+}
+
+% =========================
+% Title Block
+% =========================
+\title{
+Indicator Displacement Assays and Mixed-Host Sensor Arrays:\\
+A Simulation-Based Study of Classification Efficiency
+}
+
+
+
+% =========================
+\begin{document}
+\maketitle
+
+
+% =========================
+\section{Introduction}
+
+In certain instances, a species requires classification into a specific class. To achieve this, we must gather information about our species, which is facilitated by a sensor.
+Chemosensors are sensors that operate based on the principles of chemical equilibrium. The signal produced by these sensors varies depending on the equilibrium conditions, specifically the initial concentrations and equilibrium constants.
+In this discussion, we will explore IDAs (Indicator Displacement Assays) and mixed-host sensor arrays, examining the conditions under which these yield optimal classification efficiency.
+
+% =========================
+\section{Sensor Architectures}
+
+IDAs and mixed-host sensors generate signals through variations in the concentrations of signal-producing species. These variations are then measured.
+
+\begin{align}
+\mathrm{H} + \mathrm{D} &\rightleftharpoons \mathrm{HD} \qquad K_{HD} \\
+\mathrm{H} + \mathrm{G}_1 &\rightleftharpoons \mathrm{HG}_1 \qquad K_{HG_1} \\
+\mathrm{H} + \mathrm{G}_2 &\rightleftharpoons \mathrm{HG}_2 \qquad K_{HG_2}
+\end{align} 
+Mixed-host sensors are IDAs with an additional competitive reaction between the Guest and the Dye
+
+\begin{align}
+\mathrm{D} + \mathrm{G}_1 &\rightleftharpoons \mathrm{DG}_1 \qquad K_{GD_1} \\
+\mathrm{D} + \mathrm{G}_2 &\rightleftharpoons \mathrm{DG}_2 \qquad K_{GD_2}
+\end{align}
+
+Each sensor array consists of two sensor elements. The host (H) and the dye (D) are present at equal initial concentrations $C_s$, while the Guest (G) is introduced at concentration $C_0$.
+
+% =========================
+\section{Constants}
+
+\begin{table}[H]
+\centering
+\caption{Formation constants defining the IDA sensor arrays.}
+\label{tab:formation_constants}
+\begin{tabular}{lc}
+\toprule
+Constant & Notation \\
+\midrule
+$\log(K_{HD}^{(1)})$ & $K_1$ \\
+$\log(K_{HG_1}^{(1)})$ & $K_2$ \\
+$\log(K_{HG_2}^{(1)})$ & $K_3$ \\
+$\log(K_{HD}^{(2)})$ & $K_4$ \\
+$\log(K_{HG_1}^{(2)})$ & $K_5$ \\
+$\log(K_{HG_2}^{(2)})$ & $K_6$ \\
+$\frac{\log(K_{HD}^{(1)})+\log(K_{HD}^{(2)})}{2}$ & $\overline{K}_{HD}$ \\
+$\log(K_{HD}^{(2)})-\log(K_{HD}^{(1)})$ & $\Delta K_{HD}$ \\
+$\log(K_{HG_2}^{(i)})-\log(K_{HG_1}^{(i)})$ & $\Delta K^{(i)}$ \\
+$\min(\log(K_{HG_1}^{(i)}),\log(K_{HG_2}^{(i)}))-\log(K_{HD}^{(i)})$ & $\Delta D^{(i)}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================
+\section{Class Definitions}
+
+Two classes are defined:
+\begin{itemize}
+    \item \textbf{Class 1}: Species with smaller $K_{HG}$ in the first sensor element.
+    \item \textbf{Class 2}: Species with larger $K_{HG}$ in the first sensor element.
+\end{itemize}
+
+% =========================
+\section{Methods}
+
+Formation constants are drawn from 
+\[
+P = \{1, 2.5, 4, 5.5, 7, 8.5, 10, 11.5, 13\}.
+\]
+
+For each permutation, 90 concentrations per class are sampled for $C_0$, keeping $C_s$ fixed. UV–vis signals for free Dye (D) and complexed Dye (HD) are simulated, yielding signal vectors. Data are split into training and test sets, and classification is performed using PLS-DA.
+
+% =========================
+\section{Efficiency Subsets}
+
+Sets are partitioned into:
+\begin{itemize}
+    \item $\mathbf{P}$: $\log K_{HG_2} - \log K_{HG_1} \ge 0$
+    \item $\mathbf{N}$: $\log K_{HG_2} - \log K_{HG_1} \le 0$
+    \item $\mathbf{U}$: Union of $\mathbf{P}$ and $\mathbf{N}$
+\end{itemize}
+
+% =========================
+\section{Correlation Analysis}
+
+Mean test efficiency $\mathrm{mean}(E_t)$ is analyzed against various parameters.
+
+\begin{figure}[htbp]
+     \centering
+     % First Subfigure
+     \begin{subfigure}[b]{0.3\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{"outputs_30plotsU/U/U_corr_deltaK1_vs_Et_K1_deltaD1.png"}   
+         \caption{U}
+         \label{fig:1.1}
+     \end{subfigure}
+     \hfill
+     % Second Subfigure
+     \begin{subfigure}[b]{0.3\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{"outputs_30plotsU/N/N_corr_deltaK1_vs_Et_K1_deltaD1.png"}   
+         \caption{N}
+         \label{fig:1.2}
+     \end{subfigure}
+     \hfill
+     % Third Subfigure
+     \begin{subfigure}[b]{0.3\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{"outputs_30plotsU/P/P_corr_deltaK1_vs_Et_K1_deltaD1.png"}   
+         \caption{P}
+         \label{fig:1.3}
+     \end{subfigure}
+     \caption{Figure N: description}
+     \label{fig:main_label}
+\end{figure}
+
+
+% =========================
+\section{Conclusions}
+
+The two sensor elements behave nearly independently. Optimal classification efficiency is achieved by:
+\begin{itemize}
+    \item Maintaining $\log K_{HD} \approx 8$
+    \item Maximizing $\Delta K$
+    \item Minimizing $\Delta D$ such that strong guest binding approaches $K_{HD}$
+\end{itemize}
+
+% =========================
+\section{Confirmatory Simulation}
+
+A secondary simulation uses $\overline{K}_{HD}$ and $\Delta K_{HD}$ as design variables.
+
+\begin{table}[H]
+\centering
+\caption{Factor pools used in the confirmatory simulation.}
+\label{tab:factor_pools}
+\begin{tabular}{lc}
+\toprule
+Factor & Range \\
+\midrule
+MeanHD & $5:1:11$ \\
+$\Delta HD$ & $-8:2:8$ \\
+$\Delta D$ & $-6:1.5:6$ \\
+$\Delta K$ & $0:2:14$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================
+\section{Results}
+
+Two deviations from the primary trends are observed:
+\begin{enumerate}
+    \item At least one $\Delta D$ must be negative
+    \item Optimal performance favors $\Delta D_1 < 0$ and $\Delta D_2 > 0$
+\end{enumerate}
+
+% =========================
+\end{document}

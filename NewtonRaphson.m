@@ -6,7 +6,14 @@ c_tot(c_tot==0)=1e-15;			% numerical difficulties if c_tot=0
 it=0;
 while it<=99
     it=it+1;
-    c_spec    =beta.*prod(repmat(c',1,nspec).^Model,1); %species conc
+    % Ensure c is a row vector
+    c = reshape(c,1,[]);
+
+    % Compute species concentrations robustly, avoid 0^0 which gives NaN
+    base = repmat(c',1,nspec);
+    % Wherever exponent (Model) is 0 the contribution should be 1 (not 0^0)
+    base(Model==0 & base==0) = 1;
+    c_spec    = beta .* prod(base.^Model, 1); % species conc
     c_tot_calc=sum(Model.*repmat(c_spec,ncomp,1),2)'; %comp ctot calc
     d         =c_tot-c_tot_calc;	% diff actual and calc total conc
     
@@ -20,8 +27,17 @@ while it<=99
             J_s(k,j)=J_s(j,k);      % J_s is symmetric
         end
     end
-    
-    delta_c=(d/J_s)*diag(c);		% equation (2.43)
+    % Solve linear system robustly: use pseudoinverse if Jacobian is ill-conditioned
+    if any(isnan(J_s(:))) || any(isinf(J_s(:)))
+        warning('Jacobian contains NaN/Inf at iteration %d (i=%d). Aborting update.', it, i);
+        return
+    end
+    if rcond(J_s) < 1e-12
+        delta = d * pinv(J_s);
+    else
+        delta = d / J_s;
+    end
+    delta_c = delta * diag(c);        % equation (2.43)
     c=c+delta_c;
     
     while any(c <= 0)				% take shift back if conc neg.

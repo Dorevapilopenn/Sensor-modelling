@@ -88,103 +88,142 @@ def make_heatmap_mean(df, xcol, ycol, zcol, outpath, max_bins=40):
     plt.savefig(outpath, dpi=300, bbox_inches='tight'); plt.close(fig)
     return outpath
 
-def make_strat_corr(df, xcol, ycol, var_corr, target, outpath, xbins=20, ybins=20):
+def make_strat_corr(df, xcol, ycol, var_corr, target, outpath=None, xbins=20, ybins=20, min_count=2):
+    """Compute stratified Pearson correlation grid and optionally save a heatmap to outpath.
+    Robust to constant inputs, small bins, and includes last-edge values."""
     xvals = df[xcol].values
     yvals = df[ycol].values
-    # quantile bins to ensure coverage
+
+    # bin edges (quantile preferred, fallback to linspace)
     try:
-        x_edges = np.unique(np.quantile(xvals, np.linspace(0,1,xbins+1)))
-        y_edges = np.unique(np.quantile(yvals, np.linspace(0,1,ybins+1)))
+        x_edges = np.quantile(xvals, np.linspace(0,1,xbins+1))
+        y_edges = np.quantile(yvals, np.linspace(0,1,ybins+1))
     except Exception:
-        x_edges = np.linspace(np.min(xvals), np.max(xvals), xbins+1)
-        y_edges = np.linspace(np.min(yvals), np.max(yvals), ybins+1)
-    # also track actual unique data increments
-    ux = np.unique(np.sort(xvals))
-    uy = np.unique(np.sort(yvals))
-    x_centers = 0.5*(x_edges[:-1]+x_edges[1:])
-    y_centers = 0.5*(y_edges[:-1]+y_edges[1:])
+        x_edges = np.linspace(np.nanmin(xvals), np.nanmax(xvals), xbins+1)
+        y_edges = np.linspace(np.nanmin(yvals), np.nanmax(yvals), ybins+1)
+
+    # ensure monotonic unique edges and guarantee at least one bin
+    x_edges = np.unique(x_edges)
+    y_edges = np.unique(y_edges)
+    if x_edges.size < 2:
+        x_edges = np.array([np.nanmin(xvals), np.nanmax(xvals) + 1e-6])
+    if y_edges.size < 2:
+        y_edges = np.array([np.nanmin(yvals), np.nanmax(yvals) + 1e-6])
+
+    # tiny pad to include max value in last bin
+    x_edges[-1] = x_edges[-1] + 1e-12
+    y_edges[-1] = y_edges[-1] + 1e-12
+
+    x_centers = 0.5*(x_edges[:-1] + x_edges[1:])
+    y_centers = 0.5*(y_edges[:-1] + y_edges[1:])
     H = np.full((len(y_centers), len(x_centers)), np.nan)
+
     for i in range(len(x_centers)):
         for j in range(len(y_centers)):
-            mask = (xvals >= x_edges[i]) & (xvals < x_edges[i+1]) & (yvals >= y_edges[j]) & (yvals < y_edges[j+1])
-            if mask.sum() >= 3:
+            # inclusive on last edge to avoid dropping max values
+            if i == len(x_centers)-1:
+                xmask = (xvals >= x_edges[i]) & (xvals <= x_edges[i+1])
+            else:
+                xmask = (xvals >= x_edges[i]) & (xvals < x_edges[i+1])
+            if j == len(y_centers)-1:
+                ymask = (yvals >= y_edges[j]) & (yvals <= y_edges[j+1])
+            else:
+                ymask = (yvals >= y_edges[j]) & (yvals < y_edges[j+1])
+
+            mask = xmask & ymask
+            if mask.sum() >= min_count:
                 vals1 = df.loc[mask, var_corr].values
                 vals2 = df.loc[mask, target].values
-                if np.isnan(vals1).all() or np.isnan(vals2).all():
+                # require at least two non-NaN and non-constant inputs
+                if np.count_nonzero(~np.isnan(vals1)) < 2 or np.count_nonzero(~np.isnan(vals2)) < 2:
+                    r = np.nan
+                elif np.nanstd(vals1) == 0 or np.nanstd(vals2) == 0:
                     r = np.nan
                 else:
-                    r = pearsonr(vals1, vals2)[0]
+                    try:
+                        r = pearsonr(vals1, vals2)[0]
+                    except Exception:
+                        r = np.nan
                 H[j,i] = r
-    fig, ax = plt.subplots(figsize=(6,5))
-    pcm = ax.pcolormesh(x_edges, y_edges, np.nan_to_num(H, nan=np.nan), shading='auto', cmap='RdBu_r', vmin=-1, vmax=1)
-    ax.set_xlabel(xcol); ax.set_ylabel(ycol); ax.set_title(f"corr({var_corr},{target}) across {xcol} & {ycol}")
-    plt.colorbar(pcm, ax=ax, label=f"corr({var_corr},{target})")
 
-    # overlay grid lines for cell boundaries
-    for xe in x_edges:
-        ax.axvline(x=xe, color='k', linewidth=0.25, alpha=0.6)
-    for ye in y_edges:
-        ax.axhline(y=ye, color='k', linewidth=0.25, alpha=0.6)
+    # Plot heatmap if outpath provided
+    if outpath is not None:
+        fig, ax = plt.subplots(figsize=(6,5))
+        pcm = ax.pcolormesh(x_edges, y_edges, H, shading='auto', cmap='RdBu_r', vmin=-1, vmax=1)
+        ax.set_xlabel(xcol); ax.set_ylabel(ycol)
+        ax.set_title(f"corr({var_corr},{target}) across {xcol} & {ycol}")
+        plt.colorbar(pcm, ax=ax, label=f"corr({var_corr},{target})")
 
-    # set ticks to match actual increments where reasonable
-    if len(ux) <= max(20, len(x_edges)):
-        # prefer showing the actual unique data increments if not too many
-        # align ticks to data values (centers may equal ux when unique-based bins were used)
-        tick_pos_x = ux if len(ux) <= 30 else x_centers
-        ax.set_xticks(tick_pos_x)
-        ax.set_xticklabels([f"{v:.3g}" for v in tick_pos_x], rotation=45, ha='right')
-    else:
-        ax.xaxis.set_major_locator(plt.MaxNLocator(6))
+        # overlay thin grid lines
+        for xe in x_edges:
+            ax.axvline(x=xe, color='k', linewidth=0.25, alpha=0.5)
+        for ye in y_edges:
+            ax.axhline(y=ye, color='k', linewidth=0.25, alpha=0.5)
 
-    if len(uy) <= max(20, len(y_edges)):
-        tick_pos_y = uy if len(uy) <= 30 else y_centers
-        ax.set_yticks(tick_pos_y)
-        ax.set_yticklabels([f"{v:.3g}" for v in tick_pos_y])
-    else:
-        ax.yaxis.set_major_locator(plt.MaxNLocator(6))
+        # reasonable tick selection
+        if x_centers.size <= 20:
+            ax.set_xticks(x_centers); ax.set_xticklabels([f"{v:.3g}" for v in x_centers], rotation=45, ha='right')
+        else:
+            ax.xaxis.set_major_locator(plt.MaxNLocator(6))
+        if y_centers.size <= 20:
+            ax.set_yticks(y_centers); ax.set_yticklabels([f"{v:.3g}" for v in y_centers])
+        else:
+            ax.yaxis.set_major_locator(plt.MaxNLocator(6))
 
-    ax.set_xlim(x_edges[0], x_edges[-1])
-    ax.set_ylim(y_edges[0], y_edges[-1])
+        ax.set_xlim(x_edges[0], x_edges[-1])
+        ax.set_ylim(y_edges[0], y_edges[-1])
+        plt.savefig(outpath, dpi=300, bbox_inches='tight'); plt.close(fig)
 
-    plt.savefig(outpath, dpi=300, bbox_inches='tight'); plt.close(fig)
-    return outpath
+    return H
+
+def strat_corr_to_file(df, xcol, ycol, var_corr, target, outpath, xbins=20, ybins=20, min_count=2):
+    """Non-interactive wrapper: compute stratified correlation and save heatmap to outpath."""
+    try:
+        H = make_strat_corr(df, xcol, ycol, var_corr, target, outpath=outpath, xbins=xbins, ybins=ybins, min_count=min_count)
+        return outpath
+    except Exception as e:
+        print("Failed to generate stratified correlation:", e)
+        return None
 
 # Load datasets
-df_P = pd.read_csv("cons9U_sortedP.csv", header=None)
-df_N = pd.read_csv("cons9U_sortedN.csv", header=None)
-df_U = pd.read_csv("cons9U_sortedU.csv", header=None)
+df_U = pd.read_csv("Ms_res9U_U.csv", header=None)
+df_N = pd.read_csv("Ms_res9U_N.csv", header=None)
+df_P = pd.read_csv("Ms_res9U_P.csv", header=None)
 # Assign column names per confirmation
-cols = ["K1","K2","K3","K4","K5","K6", "meanHD",
-        "deltaD1","deltaK1","deltaHD","deltaD2","deltaK2",
+cols = ["K1","K2","K3", "K4", "K5", "HD", "deltaD","deltaK","deltaC", "deltaG",
         "Et","Class1","Class2"]
 df_U.columns = cols
-df_P.columns = cols 
 df_N.columns = cols
+df_P.columns = cols
 
-datasets = {"P":df_P, "N":df_N, "U":df_U}
+datasets = {"U":df_U, "N":df_N, "P":df_P}
 
-out_root = "outputs_30plotsU"
+out_root = "Ms_outputsU"
 ensure_dir(out_root)
 
 results = {}
 for key, df in datasets.items():
     out_dir = os.path.join(out_root, key)
     ensure_dir(out_dir)
-    # correlation table
-    tbl_path = os.path.join(out_dir, f"{key}_correlation_table.png")
-    save_corr_table(df, tbl_path)
-    results[f"{key}_table"] = tbl_path
+    # Correlation table
+    table_path = os.path.join(out_dir, f"{key}_correlation_table.png")
+    results[key] = table_path
+
     # 9 plots as specified
-    p1 = os.path.join(out_dir, f"{key}_Et_MeanHD_deltaHD.png"); make_heatmap_mean(df, "meanHD","deltaHD","Et", p1)
-    p2 = os.path.join(out_dir, f"{key}_Et_deltaD1_deltaD2.png"); make_heatmap_mean(df, "deltaD1","deltaD2","Et", p2)
-    p3 = os.path.join(out_dir, f"{key}_Et_deltaK1_deltaK2.png"); make_heatmap_mean(df, "deltaK1","deltaK2","Et", p3)
-    p5a = os.path.join(out_dir, f"{key}_Et_deltaD1_K1.png"); make_heatmap_mean(df, "deltaD1","K1","Et", p5a)
-    p5b = os.path.join(out_dir, f"{key}_Et_deltaD2_K4.png"); make_heatmap_mean(df, "deltaD2","K4","Et", p5b)
-    p6 = os.path.join(out_dir, f"{key}_corr_deltaK1_vs_Et_K1_deltaD1.png"); make_strat_corr(df, "K1","deltaD1","deltaK1","Et", p6)
-    p7 = os.path.join(out_dir, f"{key}_corr_deltaK2_vs_Et_K4_deltaD2.png"); make_strat_corr(df, "K4","deltaD2","deltaK2","Et", p7)
-    p9a = os.path.join(out_dir, f"{key}_Et_deltaK1_deltaD1.png"); make_heatmap_mean(df, "deltaK1","deltaD1","Et", p9a)
-    p9b = os.path.join(out_dir, f"{key}_Et_deltaK2_deltaD2.png"); make_heatmap_mean(df, "deltaK2","deltaD2","Et", p9b)
-    results[key] = [tbl_path, p1,p2,p3,p5a,p5b,p6,p7,p9a,p9b]
+    p1 = os.path.join(out_dir, f"{key}_Et_K1_deltaD.png"); make_heatmap_mean(df, "K1","deltaD","Et", p1)
+    p2 = os.path.join(out_dir, f"{key}_Et_K1_deltaK.png"); make_heatmap_mean(df, "K1","deltaK","Et", p2)
+    p3 = os.path.join(out_dir, f"{key}_Et_K1_deltaC.png"); make_heatmap_mean(df, "K1","deltaC","Et", p3)
+    p4 = os.path.join(out_dir, f"{key}_Et_K1_deltaG.png"); make_heatmap_mean(df, "K1","deltaG","Et", p4)
+    p5 = os.path.join(out_dir, f"{key}_Et_deltaD_deltaK.png"); make_heatmap_mean(df, "deltaD","deltaK","Et", p5)
+    p6 = os.path.join(out_dir, f"{key}_Et_deltaC_deltaG.png"); make_heatmap_mean(df, "deltaC","deltaG","Et", p6)
+    p7 = os.path.join(out_dir, f"{key}_Et_deltaD_deltaC.png"); make_heatmap_mean(df, "deltaD","deltaC","Et", p7)
+    p8 = os.path.join(out_dir, f"{key}_Et_deltaK_deltaG.png"); make_heatmap_mean(df, "deltaK","deltaG","Et", p8)
+    results[key] = [table_path, p1, p2, p3, p4, p5, p6, p7, p8]
+
+    # Non-interactive stratified correlation: deltaD & deltaK, corr(Et, deltaD)
+    strat_corr_to_file(df, "deltaD", "deltaK", "Et", "deltaG", os.path.join(out_dir, f"stratcorr_deltaD_deltaK_Et_vs_deltaG.png"))
+    strat_corr_to_file(df, "deltaC", "deltaG", "Et", "deltaK", os.path.join(out_dir, f"stratcorr_deltaC_deltaG_Et_vs_deltaK.png"))
+    strat_corr_to_file(df, "deltaK", "deltaG", "Et", "K1", os.path.join(out_dir, f"stratcorr_deltaK_deltaG_Et_vs_K1.png"))
 
 # Flatten results and print paths
 all_files = []
