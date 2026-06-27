@@ -26,13 +26,6 @@ end
 [N, N1] = size(X);
 if N < 2, error('Need at least 2 samples'); end
 
-% Check rank of X
-rankX = rank(X, eps(class(X))*max(size(X))*norm(X,'fro'));
-if rankX < min(size(X))
-    warning('X is rank deficient (rank=%d). Reducing number of components.', rankX);
-    nLV = min(nLV, rankX);
-end
-
 % --- Convert labels to dummy matrix Y ---
 [classes, ~, yidx] = unique(y);
 K = numel(classes);
@@ -46,6 +39,9 @@ Xc = X - muX;
 if doScale
     sX = std(Xc, 0, 1);
     tol = eps(class(X))*max(abs(Xc(:)));
+    if tol == 0
+        tol = eps(class(X));
+    end
     sX(sX < tol) = 1;  % More robust zero-variance check
     % Clip extremely large values to prevent overflow
     sX = max(sX, 1e-10);  % Avoid division by zero
@@ -153,11 +149,14 @@ Yhat = Yhat_c + muY;
 
 % --- PCA on predictions for discriminant space ---
 nPC = max(1, K-1);
-[coeff, score, ~, ~, ~, mu_Yhat] = pca(Yhat, 'Centered', true, ...
-    'NumComponents', nPC);
+mu_Yhat = mean(Yhat, 1);
+Yhat0 = Yhat - mu_Yhat;
+[~, ~, Vpca] = svd(Yhat0, 'econ');
+coeff = Vpca(:, 1:min(nPC, size(Vpca, 2)));
+score = Yhat0 * coeff;
 
 % --- LDA in PCA space ---
-lda = fitcdiscr(score, y, 'DiscrimType', 'linear');
+lda = fast_lda_train(score, y, classes, yidx);
 
 % --- Pack model ---
 model = struct();
@@ -179,4 +178,33 @@ model.Yhat_mean_forPCA = mu_Yhat;
 model.pcaCoeff = coeff;
 model.lda = lda;
 model.doScale = doScale;
+end
+
+function lda = fast_lda_train(score, y, classes, yidx)
+K = numel(classes);
+[N, nPC] = size(score);
+classCounts = accumarray(yidx, 1, [K, 1]);
+
+classMeans = zeros(K, nPC);
+for j = 1:nPC
+    classMeans(:, j) = accumarray(yidx, score(:, j), [K, 1]) ./ classCounts;
+end
+
+centered = score - classMeans(yidx, :);
+pooled = centered' * centered;
+
+denom = max(N - K, 1);
+sigma = pooled / denom;
+tol = eps(class(score)) * max(1, norm(sigma, 'fro'));
+sigma = sigma + eye(nPC, class(score)) * tol;
+
+lda = struct();
+lda.classes = classes;
+lda.prior = classCounts(:).' / N;
+lda.mu = classMeans;
+lda.sigma = sigma;
+lda.invSigmaMuT = sigma \ classMeans.';
+lda.constant = -0.5 * sum(classMeans .* lda.invSigmaMuT.', 2).' + log(max(lda.prior, realmin(class(score))));
+lda.ResponseName = inputname(2);
+lda.ClassNames = classes;
 end

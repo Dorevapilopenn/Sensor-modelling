@@ -9,4 +9,4 @@ deltaK2= 0:2:14;
 A = IDAa_poolgenU_ffd(meanHD, deltaD1, deltaK1, deltaHD, deltaD2, deltaK2);
 
 % Save the results
-save('D:\Artin\sensor\Sensor-modelling\cons9U.mat', 'A'); 
+save('D:\Artin\sensor\Sensor-modelling\IDAa_cons9U.mat', 'A'); 

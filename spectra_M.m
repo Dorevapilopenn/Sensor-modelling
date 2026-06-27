@@ -1,4 +1,11 @@
 function A = piers_spectra()
+persistent A_cached
+
+if ~isempty(A_cached)
+    A = A_cached;
+    return
+end
+
 % Define the wavelength range
 lam = 330:1:600;
 AD = [.657, 500, 26.27;
@@ -27,4 +34,5 @@ A{1} = S(r1,:);
 A{2} = S(r2,:);
 A{3} = S(r3,:);
 A{4} = S(r4,:);
+A_cached = A;
 end

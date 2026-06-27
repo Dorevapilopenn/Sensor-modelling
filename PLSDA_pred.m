@@ -38,7 +38,13 @@ Yhat_new = Tnew * model.Q' + model.muY;  % Include mean offset in single operati
 Tsuper = (Yhat_new - model.Yhat_mean_forPCA) * model.pcaCoeff;
 
 % LDA prediction
-[ypred, scores] = predict(model.lda, Tsuper);
+if isstruct(model.lda) && isfield(model.lda, 'invSigmaMuT')
+    scores = Tsuper * model.lda.invSigmaMuT + model.lda.constant;
+    [~, yidx] = max(scores, [], 2);
+    ypred = model.lda.classes(yidx);
+else
+    [ypred, scores] = predict(model.lda, Tsuper);
+end
 
 % Calculate efficiencies if true labels provided
 eff_total = [];
@@ -47,10 +53,7 @@ if nargin >= 3 && ~isempty(ytrue)
     classes = model.classes;
     K = numel(classes);
     eff_class = NaN(K, 1);
-    
-    % Ensure ytrue and ypred are comparable (same type)
-    % ...existing code...
-    
+
     for k = 1:K
         cls = classes(k);
         pos_mask = (ytrue == cls);    % true positives + false negatives
