@@ -1,9 +1,9 @@
-function [ypred, eff_total, eff_class, diagnostics] = plsda_predict(model, Xnew, ytrue)
+function [ypred, eff_total, eff_class, diagnostics] = PLSDA_pred(model, Xnew, ytrue)
 % Predict & return efficiencies for PLS-DA model with improved performance
-% [ypred, eff_total, eff_class, diagnostics] = plsda_predict(model, Xnew, ytrue)
+% [ypred, eff_total, eff_class, diagnostics] = PLSDA_pred(model, Xnew, ytrue)
 %
 % Inputs:
-%   model   - PLS-DA model from plsda_train
+%   model   - PLS-DA model from PLSDA_train
 %   Xnew    - New data matrix (n_new x P)
 %   ytrue   - (optional) True class labels for efficiency calculation
 %
@@ -37,13 +37,44 @@ Yhat_new = Tnew * model.Q' + model.muY;  % Include mean offset in single operati
 % Project to discriminant space efficiently
 Tsuper = (Yhat_new - model.Yhat_mean_forPCA) * model.pcaCoeff;
 
-% LDA prediction
-if isstruct(model.lda) && isfield(model.lda, 'invSigmaMuT')
-    scores = Tsuper * model.lda.invSigmaMuT + model.lda.constant;
-    [~, yidx] = max(scores, [], 2);
-    ypred = model.lda.classes(yidx);
+% Final classifier prediction
+if isfield(model, 'classifier')
+    classifier = model.classifier;
 else
-    [ypred, scores] = predict(model.lda, Tsuper);
+    classifier = 'lda';
+end
+
+switch classifier
+    case 'lda'
+        if isstruct(model.lda) && isfield(model.lda, 'invSigmaMuT')
+            scores = Tsuper * model.lda.invSigmaMuT + model.lda.constant;
+            [~, yidx] = max(scores, [], 2);
+            ypred = model.lda.classes(yidx);
+        else
+            [ypred, scores] = predict(model.lda, Tsuper);
+        end
+    case 'svm-l'
+        if ~isfield(model, 'svm') || isempty(model.svm)
+            error('Invalid linear SVM model structure.');
+        end
+        [ypred, scores] = predict(model.svm, Tsuper);
+    case 'logistic'
+        if ~isfield(model, 'logreg') || isempty(model.logreg)
+            error('Invalid logistic regression model structure.');
+        end
+        if isfield(model.logreg, 'beta') && strcmp(model.logreg.model, 'binary-irls')
+            Xlog = [ones(size(Tsuper, 1), 1), Tsuper];
+            eta = Xlog * model.logreg.beta;
+            eta = max(min(eta, 35), -35);
+            p2 = 1 ./ (1 + exp(-eta));
+            scores = [1 - p2, p2];
+        else
+            scores = mnrval(model.logreg.B, Tsuper, 'model', model.logreg.model);
+        end
+        [~, yidx] = max(scores, [], 2);
+        ypred = model.logreg.classes(yidx);
+    otherwise
+        error('Unsupported classifier "%s".', classifier);
 end
 
 % Calculate efficiencies if true labels provided
@@ -97,7 +128,14 @@ if nargout >= 4
         'Yhat_new', Yhat_new,...
         'Tplsscores', Tnew,...
         'Tsuper', Tsuper,...
+        'classifier', classifier,...
+        'classifier_scores', scores,...
         'lda_scores', scores);
+    if strcmp(classifier, 'svm-l')
+        diagnostics.svm_scores = scores;
+    elseif strcmp(classifier, 'logistic')
+        diagnostics.logistic_probabilities = scores;
+    end
 else
     diagnostics = [];
 end

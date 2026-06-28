@@ -1,14 +1,21 @@
-function model = plsda_train(X, y, nLV, doScale)
+function model = PLSDA_train(X, y, nLV, varargin)
 % Robust PLS-DA training using PLS2 algorithm with improved numerical stability
-% model = plsda_train(X, y, nLV, doScale)
+% model = PLSDA_train(X, y, nLV)
+% model = PLSDA_train(X, y, nLV, classifier)
+% model = PLSDA_train(X, y, nLV, classifier, C)
+% model = PLSDA_train(X, y, nLV, classifier, C, doScale)
 % 
 % Inputs:
-%   X       - N x P data matrix
-%   y       - N x 1 class labels (integers or categorical)
-%   nLV     - number of PLS components (recommended <= min(rank(X),K-1))
-%   doScale - (optional) whether to scale X (default true)
+%   X          - N x P data matrix
+%   y          - N x 1 class labels (integers or categorical)
+%   nLV        - number of PLS components (recommended <= min(rank(X),K-1))
+%   classifier - (optional) 'lda', 'svm-l'/'linear-svm', or 'logistic' (default 'lda')
+%   C          - (optional) SVM box constraint for linear SVM (default 1; ignored by logistic)
+%   doScale    - (optional) whether to scale X (default true)
+%
+% Backward compatible: PLSDA_train(X, y, nLV, doScale) still works.
 
-if nargin < 4, doScale = true; end
+[classifier, C, doScale] = parse_classifier_options(varargin{:});
 
 % Input validation and rank check
 if ~isnumeric(X) || ~ismatrix(X)
@@ -155,14 +162,34 @@ Yhat0 = Yhat - mu_Yhat;
 coeff = Vpca(:, 1:min(nPC, size(Vpca, 2)));
 score = Yhat0 * coeff;
 
-% --- LDA in PCA space ---
-lda = fast_lda_train(score, y, classes, yidx);
+% --- Classifier in PCA space ---
+switch classifier
+    case 'lda'
+        classifierModel = fast_lda_train(score, y, classes, yidx);
+        lda = classifierModel;
+        svm = [];
+        logreg = [];
+    case 'svm-l'
+        classifierModel = fast_linear_svm_train(score, y, classes, C);
+        lda = [];
+        svm = classifierModel;
+        logreg = [];
+    case 'logistic'
+        classifierModel = fast_logistic_train(score, yidx, classes);
+        lda = [];
+        svm = [];
+        logreg = classifierModel;
+    otherwise
+        error('Unsupported classifier "%s". Use "lda", "svm-l", or "logistic".', classifier);
+end
 
 % --- Pack model ---
 model = struct();
 model.classes = classes;
 model.nLV = nLV;
 model.nPC = nPC;
+model.classifier = classifier;
+model.svmC = C;
 model.muX = muX;
 model.sX = sX;
 model.muY = muY;
@@ -176,8 +203,127 @@ model.Wstar = Wstar;
 model.Yhat_train = Yhat;
 model.Yhat_mean_forPCA = mu_Yhat;
 model.pcaCoeff = coeff;
+model.classifierModel = classifierModel;
 model.lda = lda;
+model.svm = svm;
+model.logreg = logreg;
 model.doScale = doScale;
+end
+
+function [classifier, C, doScale] = parse_classifier_options(varargin)
+nargs = numel(varargin);
+classifier = 'lda';
+C = [];
+doScale = true;
+
+if nargs == 0 || isempty(varargin{1})
+    classifier = 'lda';
+    C = [];
+    doScale = true;
+elseif (islogical(varargin{1}) || (isnumeric(varargin{1}) && isscalar(varargin{1}))) && nargs == 1
+    doScale = logical(varargin{1});
+    classifier = 'lda';
+    C = [];
+elseif isstring(varargin{1}) || ischar(varargin{1})
+    classifier = normalize_classifier_name(varargin{1});
+    if nargs < 2 || isempty(varargin{2})
+        C = [];
+    else
+        C = varargin{2};
+    end
+    if nargs < 3 || isempty(varargin{3})
+        doScale = true;
+    else
+        doScale = varargin{3};
+    end
+else
+    error('classifier must be "lda", "svm-l", or a logical doScale value for old calls.');
+end
+
+if strcmp(classifier, 'svm-l')
+    if isempty(C)
+        C = 1;
+    end
+    if ~isnumeric(C) || ~isscalar(C) || ~isfinite(C) || C <= 0
+        error('Linear SVM parameter C must be a positive finite scalar.');
+    end
+else
+    if ~isempty(C) && (islogical(C) || (isnumeric(C) && isscalar(C))) && nargs == 2
+        doScale = logical(C);
+    end
+    C = [];
+end
+end
+
+function classifier = normalize_classifier_name(classifier)
+classifier = lower(strtrim(char(classifier)));
+switch classifier
+    case {'lda', 'linear-discriminant', 'linear discriminant'}
+        classifier = 'lda';
+    case {'svm-l', 'svml', 'linear-svm', 'linear svm', 'svm_linear', 'svmlinear'}
+        classifier = 'svm-l';
+    case {'logistic', 'logreg', 'logistic-regression', 'logistic regression', 'multinomial-logistic', 'multinomial logistic'}
+        classifier = 'logistic';
+    otherwise
+        error('Unsupported classifier "%s". Use "lda", "svm-l", or "logistic".', classifier);
+end
+end
+
+function svm = fast_linear_svm_train(score, y, classes, C)
+if exist('templateSVM', 'file') ~= 2 || exist('fitcecoc', 'file') ~= 2
+    error('Linear SVM classifier requires MATLAB Statistics and Machine Learning Toolbox functions templateSVM and fitcecoc.');
+end
+
+template = templateSVM(...
+    'KernelFunction', 'linear', ...
+    'BoxConstraint', C, ...
+    'Standardize', false);
+svm = fitcecoc(score, y, ...
+    'Learners', template, ...
+    'ClassNames', classes, ...
+    'Coding', 'onevsone');
+end
+
+function logreg = fast_logistic_train(score, yidx, classes)
+K = numel(classes);
+if K ~= 2
+    error('Fast logistic regression currently supports binary classification only.');
+end
+
+X = [ones(size(score, 1), 1), score];
+ybin = double(yidx == 2);
+beta = zeros(size(X, 2), 1);
+ridge = 1e-8;
+ridgeMat = eye(size(X, 2));
+ridgeMat(1, 1) = 0;
+
+for iter = 1:50
+    eta = X * beta;
+    eta = max(min(eta, 35), -35);
+    p = 1 ./ (1 + exp(-eta));
+    w = max(p .* (1 - p), eps(class(score)));
+    grad = X' * (ybin - p) - ridge * ridgeMat * beta;
+    H = X' * (X .* w) + ridge * ridgeMat;
+
+    if rcond(H) < 1e-12
+        step = pinv(H) * grad;
+    else
+        step = H \ grad;
+    end
+
+    beta = beta + step;
+    if norm(step) <= 1e-8 * (1 + norm(beta))
+        break;
+    end
+end
+
+logreg = struct();
+logreg.classes = classes;
+logreg.beta = beta;
+logreg.model = 'binary-irls';
+logreg.iterations = iter;
+logreg.ResponseName = 'y';
+logreg.ClassNames = classes;
 end
 
 function lda = fast_lda_train(score, y, classes, yidx)
