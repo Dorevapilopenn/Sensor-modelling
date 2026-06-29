@@ -23,9 +23,9 @@ CONFIG = {
     "columns": COLUMNS,
     "feature_cols": [col for col in COLUMNS if col not in ("Et", "Class1", "Class2")],
     "datasets": {
-        "P": "IDAa_res9U_P.csv",
-        "N": "IDAa_res9U_N.csv",
-        "U": "IDAa_res9U_sorted.csv",
+        "P": "gitignored_data/IDAa_res9U_P.csv",
+        "N": "gitignored_data/IDAa_res9U_N.csv",
+        "U": "gitignored_data/IDAa_res9U_sorted.csv",
     },
     "out_root": "IDAa_outputs",
     "save_corr_table": save_corr_table,

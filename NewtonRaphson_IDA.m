@@ -1,59 +1,50 @@
-function c_spec = NewtonRaphson_IDA(beta, c_tot, c, i)
-% Fast Newton-Raphson solver for the IDA model: H, G, D, HD, HG.
+function c_spec = NewtonRaphson_IDA(beta, c_tot, c, i) %#ok<INUSD>
+% Fast safeguarded scalar solver for the IDA model: H, G, D, HD, HG.
 
-c_tot = c_tot(:).';
 beta = beta(:).';
-c = c(:).';
-c_tot(c_tot == 0) = 1e-15;          % numerical difficulties if c_tot=0
+c_tot = c_tot(:).';
+c_tot(c_tot <= 0) = 1e-15;
 
-for it = 1:100
-    H = c(1);
-    G = c(2);
-    D = c(3);
+KHD = beta(4);
+KHG = beta(5);
+Ht = c_tot(1);
+Gt = c_tot(2);
+Dt = c_tot(3);
 
-    c_spec = [ ...
-        beta(1) * H, ...
-        beta(2) * G, ...
-        beta(3) * D, ...
-        beta(4) * H * D, ...
-        beta(5) * H * G];
-
-    HD = c_spec(4);
-    HG = c_spec(5);
-
-    c_tot_calc = [c_spec(1) + HD + HG, ...
-                  c_spec(2) + HG, ...
-                  c_spec(3) + HD];
-    d = c_tot - c_tot_calc;
-
-    if all(abs(d) < 1e-15)
-        return
-    end
-
-    J_s = [c_spec(1) + HD + HG, HG,                 HD; ...
-           HG,                 c_spec(2) + HG,      0; ...
-           HD,                 0,                  c_spec(3) + HD];
-
-    if any(~isfinite(J_s(:)))
-        warning('Jacobian contains NaN/Inf at iteration %d (i=%d). Aborting update.', it, i);
-        return
-    end
-    if rcond(J_s) < 1e-12
-        delta = d * pinv(J_s);
-    else
-        delta = d / J_s;
-    end
-
-    delta_c = delta .* c;
-    c = c + delta_c;
-
-    while any(c <= 0)
-        delta_c = 0.5 * delta_c;
-        c = c - delta_c;
-        if all(abs(delta_c) < 1e-15)
-           break
-        end
-    end
+lo = 0;
+hi = Ht;
+H = min(max(c(1), lo), hi);
+if H <= 0 || ~isfinite(H)
+    H = Ht / max(1 + KHD * Dt + KHG * Gt, 1);
 end
 
-fprintf(1, 'no conv. at C_spec(%i,:)\n', i);
+tol = max(1e-14, 1e-10 * Ht);
+for it = 1:30
+    denD = 1 + KHD * H;
+    denG = 1 + KHG * H;
+    F = H + H * KHD * Dt / denD + H * KHG * Gt / denG - Ht;
+
+    if abs(F) <= tol
+        break;
+    end
+
+    if F > 0
+        hi = H;
+    else
+        lo = H;
+    end
+
+    dF = 1 + KHD * Dt / (denD * denD) + KHG * Gt / (denG * denG);
+    Hnew = H - F / dF;
+    if Hnew <= lo || Hnew >= hi || ~isfinite(Hnew)
+        Hnew = 0.5 * (lo + hi);
+    end
+    H = Hnew;
+end
+
+G = Gt / (1 + KHG * H);
+D = Dt / (1 + KHD * H);
+HD = KHD * H * D;
+HG = KHG * H * G;
+c_spec = [H, G, D, HD, HG];
+end

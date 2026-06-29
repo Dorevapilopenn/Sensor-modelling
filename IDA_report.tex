@@ -1,196 +1,585 @@
 \documentclass[11pt]{article}
 
-% =========================
-% Packages
-% =========================
-\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[a4paper,margin=0.85in,top=0.8in,bottom=0.9in]{geometry}
 \usepackage{setspace}
 \usepackage{graphicx}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{float}
-\usepackage{hyperref}
+\usepackage{xcolor}
 
-\onehalfspacing
+\setstretch{1.18}
 
-\hypersetup{
-    colorlinks=true,
-    linkcolor=black,
-    citecolor=black,
-    urlcolor=black
+\definecolor{reportblue}{RGB}{32,82,112}
+\definecolor{reportteal}{RGB}{24,126,128}
+\definecolor{reportgray}{RGB}{246,248,249}
+\definecolor{rulegray}{RGB}{204,213,220}
+\definecolor{textgray}{RGB}{54,62,68}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.48em}
+\captionsetup{font=small,labelfont={bf,color=reportteal},labelsep=period}
+\renewcommand{\figurename}{Exhibit}
+\renewcommand{\tablename}{Table}
+\pagestyle{plain}
+
+\newcommand{\KHD}{K_{\mathrm{HD}}}
+\newcommand{\KHG}{K_{\mathrm{HG}}}
+\newcommand{\KDG}{K_{\mathrm{DG}}}
+\newcommand{\Et}{E_t}
+\newcommand{\reportmeta}[2]{\textcolor{reportblue}{\textbf{#1}}\hspace{0.5em}#2}
+\newcommand{\reportsectionrule}{\vspace{0.15em}{\color{reportteal}\rule{0.78\textwidth}{0.6pt}}\vspace{0.2em}}
+\newcommand{\reportbox}[2]{%
+    \vspace{0.3em}
+    \noindent\fcolorbox{rulegray}{reportgray}{%
+        \begin{minipage}{0.96\textwidth}
+        \vspace{0.45em}
+        {\large\textcolor{reportblue}{\textbf{#1}}}\par
+        \vspace{0.2em}
+        #2
+        \vspace{0.35em}
+        \end{minipage}%
+    }
+    \vspace{0.6em}
+}
+\newcommand{\panelimage}[2]{%
+    \begin{subfigure}[t]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{#1}
+        \caption{#2}
+    \end{subfigure}%
 }
 
-% =========================
-% Title Block
-% =========================
-\title{
-Indicator Displacement Assays and Mixed-Host Sensor Arrays:\\
-A Simulation-Based Study of Classification Efficiency
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{0pt}%
+    {1.6em plus 0.4em minus 0.2em}%
+    {0.45em}%
+    {\normalfont\Large\bfseries\color{reportblue}}}
+\renewcommand\subsection{\@startsection{subsection}{2}{0pt}%
+    {1.0em plus 0.3em minus 0.1em}%
+    {0.25em}%
+    {\normalfont\large\bfseries\color{reportteal}}}
+\makeatother
+
+\newcommand{\reporttitlepage}{%
+    \begin{center}
+    {\Large\textcolor{reportteal}{\textbf{IDA Report}}}\par
+    \vspace{0.45em}
+    {\huge\bfseries\textcolor{reportblue}{Indicator Displacement Assays and Mixed-Host Sensor Arrays}}\par
+    \vspace{0.25em}
+    {\Large A Simulation-Based Study of Classification Efficiency}\par
+    \vspace{0.7em}
+    {\color{rulegray}\rule{0.9\textwidth}{0.9pt}}\par
+    \vspace{0.5em}
+    \begin{tabular}{@{}ll@{}}
+    \reportmeta{Focus}{classification efficiency by equilibrium-design variables}\\
+    \reportmeta{Models}{IDA array, Ma array, single IDA, Ms sensor}
+    \end{tabular}
+    \end{center}
+    \vspace{0.4em}
 }
 
-
-
-% =========================
 \begin{document}
-\maketitle
+\reporttitlepage
 
+\reportbox{Report Summary}{
+There are situations where a species needs to be classified into a class; in order
+for that, information about the species must be gathered by a sensor. This report
+discusses IDAs and mixed-host sensor arrays and the conditions in which these
+yield maximum efficiency of classification. The simulations compare single
+component IDA, two-element IDA arrays, mixed-host arrays, and mixed-host sensors
+using PLS-DA classification of simulated UV--vis signal vectors.
+}
 
-% =========================
-\section{Introduction}
+\section{Background}
 
-In certain instances, a species requires classification into a specific class. To achieve this, we must gather information about our species, which is facilitated by a sensor.
-Chemosensors are sensors that operate based on the principles of chemical equilibrium. The signal produced by these sensors varies depending on the equilibrium conditions, specifically the initial concentrations and equilibrium constants.
-In this discussion, we will explore IDAs (Indicator Displacement Assays) and mixed-host sensor arrays, examining the conditions under which these yield optimal classification efficiency.
+Chemosensors are sensors which are governed by rules of chemical equilibrium,
+and the signal varies by the conditions of the equilibrium, i.e. the initial
+concentrations and equilibrium constants.
 
-% =========================
-\section{Sensor Architectures}
+Indicator Displacement Assays (IDAs) produce the signal by variations in
+concentrations of signal-producing species, which then is measured. The goal of
+this paper is to assess whether the additional equilibrium in mixed-host sensors
+affects the efficiency of classification.
 
-IDAs and mixed-host sensors generate signals through variations in the concentrations of signal-producing species. These variations are then measured.
+\section{Sensor Setup}
 
+The sensors are used in a sensor of two sensor elements, which we will refer to
+as a sensor array. The sensor components in both sensors are Host (H) and Dye
+(D), with equal initial concentrations $C_s$, and the Guest (G) is the analyte
+with the initial concentration of $C_0$.
+
+\subsection{IDA Array}
+
+There are six formation constants in the IDA array. For each sensor element, the
+host binds the dye and the two guests:
 \begin{align}
-\mathrm{H} + \mathrm{D} &\rightleftharpoons \mathrm{HD} \qquad K_{HD} \\
-\mathrm{H} + \mathrm{G}_1 &\rightleftharpoons \mathrm{HG}_1 \qquad K_{HG_1} \\
-\mathrm{H} + \mathrm{G}_2 &\rightleftharpoons \mathrm{HG}_2 \qquad K_{HG_2}
-\end{align} 
-Mixed-host sensors are IDAs with an additional competitive reaction between the Guest and the Dye
-
-\begin{align}
-\mathrm{D} + \mathrm{G}_1 &\rightleftharpoons \mathrm{DG}_1 \qquad K_{GD_1} \\
-\mathrm{D} + \mathrm{G}_2 &\rightleftharpoons \mathrm{DG}_2 \qquad K_{GD_2}
+\mathrm{H} + \mathrm{D} &\rightleftharpoons \mathrm{HD} \qquad \KHD,\\
+\mathrm{H} + \mathrm{G}_1 &\rightleftharpoons \mathrm{HG}_1 \qquad \KHG{}_1,\\
+\mathrm{H} + \mathrm{G}_2 &\rightleftharpoons \mathrm{HG}_2 \qquad \KHG{}_2.
 \end{align}
 
-Each sensor array consists of two sensor elements. The host (H) and the dye (D) are present at equal initial concentrations $C_s$, while the Guest (G) is introduced at concentration $C_0$.
-
-% =========================
-\section{Constants}
-
 \begin{table}[H]
 \centering
-\caption{Formation constants defining the IDA sensor arrays.}
-\label{tab:formation_constants}
-\begin{tabular}{lc}
+\caption{Constants and derived knobs for the two-element IDA array.}
+\label{tab:ida_array_constants}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lll}
 \toprule
-Constant & Notation \\
+Symbol & Definition & Meaning \\
 \midrule
-$\log(K_{HD}^{(1)})$ & $K_1$ \\
-$\log(K_{HG_1}^{(1)})$ & $K_2$ \\
-$\log(K_{HG_2}^{(1)})$ & $K_3$ \\
-$\log(K_{HD}^{(2)})$ & $K_4$ \\
-$\log(K_{HG_1}^{(2)})$ & $K_5$ \\
-$\log(K_{HG_2}^{(2)})$ & $K_6$ \\
-$\frac{\log(K_{HD}^{(1)})+\log(K_{HD}^{(2)})}{2}$ & $\overline{K}_{HD}$ \\
-$\log(K_{HD}^{(2)})-\log(K_{HD}^{(1)})$ & $\Delta K_{HD}$ \\
-$\log(K_{HG_2}^{(i)})-\log(K_{HG_1}^{(i)})$ & $\Delta K^{(i)}$ \\
-$\min(\log(K_{HG_1}^{(i)}),\log(K_{HG_2}^{(i)}))-\log(K_{HD}^{(i)})$ & $\Delta D^{(i)}$ \\
+$K_1$ & $\log \KHD^{(1)}$ & Host--dye constant in sensor element 1 \\
+$K_2$ & $\log \KHG{}_{1}^{(1)}$ & Guest 1 constant in sensor element 1 \\
+$K_3$ & $\log \KHG{}_{2}^{(1)}$ & Guest 2 constant in sensor element 1 \\
+$K_4$ & $\log \KHD^{(2)}$ & Host--dye constant in sensor element 2 \\
+$K_5$ & $\log \KHG{}_{1}^{(2)}$ & Guest 1 constant in sensor element 2 \\
+$K_6$ & $\log \KHG{}_{2}^{(2)}$ & Guest 2 constant in sensor element 2 \\
+$\Delta D_1$ & $\min(K_2,K_3)-K_1$ & Guest affinity relative to dye in sensor element 1 \\
+$\Delta D_2$ & $\min(K_5,K_6)-K_4$ & Guest affinity relative to dye in sensor element 2 \\
+$\Delta K_1$ & $|K_3-K_2|$ & Separation between the guests in sensor element 1 \\
+$\Delta K_2$ & $|K_6-K_5|$ & Separation between the guests in sensor element 2 \\
+$\Delta HD$ & $K_4-K_1$ & Difference between host--dye constants \\
+$\overline{HD}$ & $(K_1+K_4)/2$ & Mean host--dye constant \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-% =========================
-\section{Class Definitions}
+\subsection{Mixed-Host Sensor}
 
-Two classes are defined:
+Adding an additional reaction to the IDA results in what we will refer to as
+mixed-host sensors. The additional equilibrium is a guest--dye reaction:
+\begin{align}
+\mathrm{D} + \mathrm{G}_1 &\rightleftharpoons \mathrm{DG}_1 \qquad \KDG{}_1,\\
+\mathrm{D} + \mathrm{G}_2 &\rightleftharpoons \mathrm{DG}_2 \qquad \KDG{}_2.
+\end{align}
+We are interested in knowing the effect of this added reaction and studying them.
+
+\section{Classification Rules}
+
+For a better intuitive understanding, we define two classes:
 \begin{itemize}
-    \item \textbf{Class 1}: Species with smaller $K_{HG}$ in the first sensor element.
-    \item \textbf{Class 2}: Species with larger $K_{HG}$ in the first sensor element.
+    \item \textbf{Class 1}: the species with a smaller formation constant in the
+    first sensor element of the array.
+    \item \textbf{Class 2}: the species with a greater formation constant in the
+    first sensor element of the array.
 \end{itemize}
 
-% =========================
-\section{Methods}
+\section{Simulation Method}
 
-Formation constants are drawn from 
+The six formation constants are chosen from a pool $P$:
 \[
-P = \{1, 2.5, 4, 5.5, 7, 8.5, 10, 11.5, 13\}.
+K_i \in P \quad \mathrm{for\ every}\ i,\qquad
+P=\{1,2.5,4,5.5,7,8.5,10,11.5,13\}.
 \]
 
-For each permutation, 90 concentrations per class are sampled for $C_0$, keeping $C_s$ fixed. UV–vis signals for free Dye (D) and complexed Dye (HD) are simulated, yielding signal vectors. Data are split into training and test sets, and classification is performed using PLS-DA.
+For each permutation, a random set of $C_0$ values (90 concentrations for each
+class), keeping $C_s$ constant, is used to simulate the UV--vis signal of D and
+HD species for each set, so an according set of signal vectors is yielded. After
+splitting into a training and test set, a PLS-DA model is deployed to conduct the
+classification.
 
-% =========================
-\section{Efficiency Subsets}
-
-Sets are partitioned into:
+There are two settings for the sensor arrays:
 \begin{itemize}
-    \item $\mathbf{P}$: $\log K_{HG_2} - \log K_{HG_1} \ge 0$
-    \item $\mathbf{N}$: $\log K_{HG_2} - \log K_{HG_1} \le 0$
-    \item $\mathbf{U}$: Union of $\mathbf{P}$ and $\mathbf{N}$
+    \item $\mathbf{N}$: Class 2 has a greater $\KHG$ in S1 but a smaller $\KHG$
+    in S2.
+    \item $\mathbf{P}$: Class 2 has a higher $\KHG$ both in S1 and S2.
+    \item $\mathbf{U}$: for ease of notation, the union of P and N.
 \end{itemize}
 
-% =========================
-\section{Correlation Analysis}
+\section{IDA Array Results}
 
-Mean test efficiency $\mathrm{mean}(E_t)$ is analyzed against various parameters.
+The mean total efficiency $\mathrm{mean}(\Et)$ is studied stratifying by multiple
+parameters. The correlation tables show where $\Delta K$ and $\Delta D$ behave as
+the main knobs.
 
-\begin{figure}[htbp]
-     \centering
-     % First Subfigure
-     \begin{subfigure}[b]{0.3\textwidth}
-         \centering
-         \includegraphics[width=\textwidth]{"outputs_30plotsU/U/U_corr_deltaK1_vs_Et_K1_deltaD1.png"}   
-         \caption{U}
-         \label{fig:1.1}
-     \end{subfigure}
-     \hfill
-     % Second Subfigure
-     \begin{subfigure}[b]{0.3\textwidth}
-         \centering
-         \includegraphics[width=\textwidth]{"outputs_30plotsU/N/N_corr_deltaK1_vs_Et_K1_deltaD1.png"}   
-         \caption{N}
-         \label{fig:1.2}
-     \end{subfigure}
-     \hfill
-     % Third Subfigure
-     \begin{subfigure}[b]{0.3\textwidth}
-         \centering
-         \includegraphics[width=\textwidth]{"outputs_30plotsU/P/P_corr_deltaK1_vs_Et_K1_deltaD1.png"}   
-         \caption{P}
-         \label{fig:1.3}
-     \end{subfigure}
-     \caption{Figure N: description}
-     \label{fig:main_label}
+\begin{figure}[H]
+    \centering
+    \panelimage{IDAa_outputs/U/U_correlation_table.png}{U}
+    \hfill
+    \panelimage{IDAa_outputs/N/N_correlation_table.png}{N}
+    \hfill
+    \panelimage{IDAa_outputs/P/P_correlation_table.png}{P}
+    \caption{Correlation tables for total efficiency in the IDA array.}
+    \label{fig:ida_corr_tables}
 \end{figure}
 
+The plots versus $K_1$ and $\Delta HD$ give insight on what host and dye to look
+for.
 
-% =========================
-\section{Conclusions}
+\begin{figure}[H]
+    \centering
+    \panelimage{IDAa_outputs/U/U_Et_MeanHD_deltaHD.png}{U}
+    \hfill
+    \panelimage{IDAa_outputs/N/N_Et_MeanHD_deltaHD.png}{N}
+    \hfill
+    \panelimage{IDAa_outputs/P/P_Et_MeanHD_deltaHD.png}{P}
+    \caption{Effect of mean host--dye strength and $\Delta HD$ on $\Et$.}
+    \label{fig:ida_meanhd_deltahd}
+\end{figure}
 
-The two sensor elements behave nearly independently. Optimal classification efficiency is achieved by:
-\begin{itemize}
-    \item Maintaining $\log K_{HD} \approx 8$
-    \item Maximizing $\Delta K$
-    \item Minimizing $\Delta D$ such that strong guest binding approaches $K_{HD}$
-\end{itemize}
+The $\Delta K_1,\Delta K_2$ plots show what $\Delta K$ to aim for. The
+$\Delta D_1,\Delta D_2$ plots show what $\Delta D$ to aim for.
 
-% =========================
+\begin{figure}[H]
+    \centering
+    \panelimage{IDAa_outputs/U/U_Et_deltaK1_deltaK2.png}{U}
+    \hfill
+    \panelimage{IDAa_outputs/N/N_Et_deltaK1_deltaK2.png}{N}
+    \hfill
+    \panelimage{IDAa_outputs/P/P_Et_deltaK1_deltaK2.png}{P}
+    \caption{Total efficiency versus $\Delta K_1$ and $\Delta K_2$.}
+    \label{fig:ida_deltak}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \panelimage{IDAa_outputs/U/U_Et_deltaD1_deltaD2.png}{U}
+    \hfill
+    \panelimage{IDAa_outputs/N/N_Et_deltaD1_deltaD2.png}{N}
+    \hfill
+    \panelimage{IDAa_outputs/P/P_Et_deltaD1_deltaD2.png}{P}
+    \caption{Total efficiency versus $\Delta D_1$ and $\Delta D_2$.}
+    \label{fig:ida_deltad}
+\end{figure}
+
+The plots of $K_1,\Delta D_1$ and $K_4,\Delta D_2$ test whether $\Delta D$ is
+solely important or whether $\KHD$ also matters.
+
+\begin{figure}[H]
+    \centering
+    \panelimage{IDAa_outputs/U/U_Et_deltaD1_K1.png}{$K_1,\Delta D_1$}
+    \hfill
+    \panelimage{IDAa_outputs/U/U_Et_deltaD2_K4.png}{$K_4,\Delta D_2$}
+    \hfill
+    \panelimage{IDAa_outputs/U/U_corr_deltaK1_vs_Et_K1_deltaD1.png}{stratified correlation}
+    \caption{Host--dye strength and guest--dye offset as controls of efficiency.}
+    \label{fig:ida_khd_deltad}
+\end{figure}
+
+The showings indicate that two sensors are almost independent. One must aim for:
+\begin{enumerate}
+    \item Keeping both $\log\KHD$ values around 8.
+    \item A high $\Delta K$.
+    \item A low $\Delta D$ so the formation constant for the guest with greater
+    affinity is almost as great as $\KHD$.
+\end{enumerate}
+
 \section{Confirmatory Simulation}
 
-A secondary simulation uses $\overline{K}_{HD}$ and $\Delta K_{HD}$ as design variables.
-
+To confirm the results obtained from the design, another full factorial
+simulation is designed, this time utilizing the knobs:
 \begin{table}[H]
 \centering
-\caption{Factor pools used in the confirmatory simulation.}
-\label{tab:factor_pools}
-\begin{tabular}{lc}
+\caption{Factor sets used in the confirmatory IDA array simulation.}
+\label{tab:confirmatory_knobs}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{ll}
 \toprule
-Factor & Range \\
+Factor & Set \\
 \midrule
-MeanHD & $5:1:11$ \\
-$\Delta HD$ & $-8:2:8$ \\
-$\Delta D$ & $-6:1.5:6$ \\
-$\Delta K$ & $0:2:14$ \\
+$\Delta HD$ & $\{-8:2:8\}$ \\
+$\overline{HD}$ & $\{5:1:11\}$ \\
+$\Delta K_1,\Delta K_2$ & $\{0:2:14\}$ \\
+$\Delta D_1,\Delta D_2$ & $\{-6:1.5:6\}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-% =========================
-\section{Results}
+The results are almost concurrent with the former simulation. Notable showings
+are that $\overline{HD}\sim 8$, $\Delta HD \sim 0$, and an increase in
+$\Delta K$ values all cause an increase in $\Et$.
 
-Two deviations from the primary trends are observed:
+But in $\mathbf{P}$, a negative $\Delta D_1$ but a positive $\Delta D_2$
+maximizes $\Et$, while in $\mathbf{N}$ a negative $\Delta D_1$ is all that is
+needed and is almost independent of $\Delta D_2$.
+
+\begin{figure}[H]
+    \centering
+    \panelimage{IDAa_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{U}
+    \hfill
+    \panelimage{IDAa_outputs/N/N_MeanEt_corresponding_knobs_matrix.png}{N}
+    \hfill
+    \panelimage{IDAa_outputs/P/P_MeanEt_corresponding_knobs_matrix.png}{P}
+    \caption{Mean efficiency matrices from the confirmatory IDA array simulation.}
+    \label{fig:ida_confirmatory}
+\end{figure}
+
+\section{Mixed-Host Array Check}
+
+The Ma simulation extends the two-element IDA array by adding dye--guest binding
+in each sensor element. The first element is controlled by $K_1$ to $K_5$, and
+the second element is controlled by $K_6$ to $K_{10}$. In each element, the host
+binds the dye and both guests, while the dye also binds both guests.
+
+\begin{table}[H]
+\centering
+\caption{Constants and derived knobs for the two-element mixed-host array.}
+\label{tab:ma_constants}
+\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{lll}
+\toprule
+Symbol & Definition & Meaning \\
+\midrule
+$K_1$ & $\log \KHD^{(1)}$ & Host--dye constant in sensor element 1 \\
+$K_2$ & $\log \KHG{}_{1}^{(1)}$ & Host--guest 1 constant in sensor element 1 \\
+$K_3$ & $\log \KHG{}_{2}^{(1)}$ & Host--guest 2 constant in sensor element 1 \\
+$K_4$ & $\log \KDG{}_{1}^{(1)}$ & Dye--guest 1 constant in sensor element 1 \\
+$K_5$ & $\log \KDG{}_{2}^{(1)}$ & Dye--guest 2 constant in sensor element 1 \\
+$K_6$ & $\log \KHD^{(2)}$ & Host--dye constant in sensor element 2 \\
+$K_7$ & $\log \KHG{}_{1}^{(2)}$ & Host--guest 1 constant in sensor element 2 \\
+$K_8$ & $\log \KHG{}_{2}^{(2)}$ & Host--guest 2 constant in sensor element 2 \\
+$K_9$ & $\log \KDG{}_{1}^{(2)}$ & Dye--guest 1 constant in sensor element 2 \\
+$K_{10}$ & $\log \KDG{}_{2}^{(2)}$ & Dye--guest 2 constant in sensor element 2 \\
+$\Delta C_i$ & $\min(K_{\mathrm{DG},1}^{(i)},K_{\mathrm{DG},2}^{(i)})-\log\KHD^{(i)}$ & Dye--guest offset from host--dye \\
+$\Delta G_i$ & $K_{\mathrm{DG},2}^{(i)}-K_{\mathrm{DG},1}^{(i)}$ & Dye selectivity difference \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Ma data files use $\overline{HD}$, $\Delta HD$, $\Delta D_1$, $\Delta D_2$,
+$\Delta K_1$, $\Delta K_2$, $\Delta C_1$, $\Delta C_2$, $\Delta G_1$, and
+$\Delta G_2$ as the knobs. The sampled sets are:
+\begin{itemize}
+    \item $\overline{HD} \in \{5:1:11\}$
+    \item $\Delta HD,\Delta D_1,\Delta D_2,\Delta C_1,\Delta C_2 \in \{-6:1.5:6\}$
+    \item $\Delta K_1,\Delta K_2,\Delta G_1,\Delta G_2 \in \{0:2:14\}$
+\end{itemize}
+
+The Ma result files contain 3,585,473 rows in $\mathbf{U}$, with 1,859,164 rows
+in each of $\mathbf{P}$ and $\mathbf{N}$. The mean efficiencies are high:
+$\mathrm{mean}(\Et)=0.9641$ for $\mathbf{U}$, $0.9440$ for $\mathbf{P}$, and
+$0.9822$ for $\mathbf{N}$, with maxima reaching $\Et=1$ in all three partitions.
+
+\begin{figure}[H]
+    \centering
+    \panelimage{Ma_outputs/U/U_correlation_table.png}{U}
+    \hfill
+    \panelimage{Ma_outputs/N/N_correlation_table.png}{N}
+    \hfill
+    \panelimage{Ma_outputs/P/P_correlation_table.png}{P}
+    \caption{Correlation tables for total efficiency in the Ma mixed-host array.}
+    \label{fig:ma_corr_tables}
+\end{figure}
+
+The first-pass correlations show that the mixed-host array is less dominated by
+one isolated knob than the single mixed-host sensor. In the raw Ma CSV files, the
+largest correlations with $\Et$ are associated with the dye--guest constants in
+the first element, especially $K_4$ and $K_5$, while secondary effects appear
+through $K_9$, $K_7$, $K_8$, and the second-element selectivity variables.
+
+\begin{figure}[H]
+    \centering
+    \panelimage{Ma_outputs/U/U_Et_MeanHD_deltaHD.png}{U}
+    \hfill
+    \panelimage{Ma_outputs/N/N_Et_MeanHD_deltaHD.png}{N}
+    \hfill
+    \panelimage{Ma_outputs/P/P_Et_MeanHD_deltaHD.png}{P}
+    \caption{Ma efficiency versus mean host--dye strength and $\Delta HD$.}
+    \label{fig:ma_meanhd_deltahd}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \panelimage{Ma_outputs/U/U_Et_deltaD1_deltaD2.png}{$\Delta D_1,\Delta D_2$}
+    \hfill
+    \panelimage{Ma_outputs/U/U_Et_deltaK1_deltaK2.png}{$\Delta K_1,\Delta K_2$}
+    \hfill
+    \panelimage{Ma_outputs/U/U_Et_deltaG1_deltaG2.png}{$\Delta G_1,\Delta G_2$}
+    \caption{Paired Ma array knobs in the union partition.}
+    \label{fig:ma_pair_knobs}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \panelimage{Ma_outputs/U/U_Et_deltaC1_deltaG1.png}{element 1}
+    \hfill
+    \panelimage{Ma_outputs/U/U_Et_deltaC2_deltaG2.png}{element 2}
+    \hfill
+    \panelimage{Ma_outputs/U/U_Et_deltaC1_deltaC2.png}{$\Delta C_1,\Delta C_2$}
+    \caption{Dye--guest offset and dye selectivity effects in the Ma array.}
+    \label{fig:ma_cg}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \panelimage{Ma_outputs/U/U_MeanEt_component1_matrix.png}{component 1}
+    \hfill
+    \panelimage{Ma_outputs/U/U_MeanEt_component2_matrix.png}{component 2}
+    \hfill
+    \panelimage{Ma_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{corresponding knobs}
+    \caption{Mean-efficiency matrices for Ma component and cross-component knobs.}
+    \label{fig:ma_mean_matrices}
+\end{figure}
+
+The Ma array reaches high efficiencies over a broad region. A practical reading
+from the data files is that the additional dye--guest equilibria can preserve
+high classification efficiency when the host--dye mean remains near the useful
+range and the two elements provide complementary contrast through the
+$\Delta D$, $\Delta K$, $\Delta C$, and $\Delta G$ variables.
+
+\section{Single Component IDA Check}
+
+In order to observe whether adding a second sensor element results in
+significantly higher efficiencies, we modeled a single component IDA with host
+and dye concentrations similar to that of the array IDA and tested it with guest
+concentrations in the same range; same constants are used here.
+
+\begin{table}[H]
+\centering
+\caption{Constants and knobs for the single component IDA.}
+\label{tab:single_ida_constants}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lll}
+\toprule
+Symbol & Definition & Meaning \\
+\midrule
+$K_1$ & $\log(\KHD)$ & Host--dye constant \\
+$K_2$ & $\log(\KHG{}_{1})$ & Guest 1 constant \\
+$K_3$ & $\log(\KHG{}_{2})$ & Guest 2 constant \\
+$\Delta D$ & $K_2-K_1$ & Guest affinity relative to dye \\
+$\Delta K$ & $K_3-K_2$ & Difference between the two guests \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The knobs were chosen from the following sets:
+\begin{itemize}
+    \item $HD \in \{5:1:11\}$
+    \item $\Delta D \in \{-6:1.5:6\}$
+    \item $\Delta K \in \{0:2:14\}$
+\end{itemize}
+
+Looking at the heatmaps, one could see that the same conclusions apply here:
+\begin{itemize}
+    \item a $\Delta D$ of around $-1.5$ yields the best efficiencies,
+    \item a higher $\Delta K$ somewhat correlates with a higher efficiency,
+    \item but there is no consistent correlation between system variables.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \panelimage{IDAs_outputsU/U/U_correlation_table.png}{correlation table}
+    \hfill
+    \panelimage{IDAs_outputsU/U/U_Et_deltad_deltak.png}{$\Delta D,\Delta K$}
+    \hfill
+    \panelimage{IDAs_outputsU/U/U_Et_K1_deltaD.png}{$K_1,\Delta D$}
+    \caption{Single component IDA efficiency trends.}
+    \label{fig:single_ida}
+\end{figure}
+
+There are some differences as well, namely the overall efficiency is lower and
+there is only a slight variation in $\Et$ when changing the constants; hence one
+could conclude a second sensor arrayed to the first one does both increase the
+$\Et$ and lower the variability in differentiation efficiency.
+
+\section{Mixed-Host Sensor Check}
+
+In a single mixed-host sensor component the constants involved are as follows:
+\begin{table}[H]
+\centering
+\caption{Constants and knobs for the single component mixed-host sensor.}
+\label{tab:single_mixed_constants}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lll}
+\toprule
+Symbol & Definition & Meaning \\
+\midrule
+$K_1$ & $\log(\KHD)$ & Host--dye constant \\
+$K_2$ & $\log(\KHG{}_{1})$ & Host--guest 1 constant \\
+$K_3$ & $\log(\KHG{}_{2})$ & Host--guest 2 constant \\
+$K_4$ & $\log(\KDG{}_{1})$ & Dye--guest 1 constant \\
+$K_5$ & $\log(\KDG{}_{2})$ & Dye--guest 2 constant \\
+$\Delta D$ & $K_2-K_1$ & Host--guest offset from host--dye \\
+$\Delta K$ & $K_3-K_2$ & Host selectivity difference \\
+$\Delta C$ & $\min(K_4,K_5)-K_1$ & Dye--guest offset from host--dye \\
+$\Delta G$ & $K_5-K_4$ & Dye selectivity difference \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Same as before, a full factorial simulation on the knobs was performed with the
+following sets:
+\begin{itemize}
+    \item $HD \in \{5:1:11\}$
+    \item $\Delta D \in \{-6:1.5:6\}$
+    \item $\Delta K \in \{0:2:14\}$
+    \item $\Delta C \in \{-6:1.5:6\}$
+    \item $\Delta G \in \{0:2:14\}$
+\end{itemize}
+
+The Ms data file contains 72,576 rows. The mean efficiency is
+$\mathrm{mean}(\Et)=0.7199$, the minimum observed efficiency is $0.2031$, and
+the maximum observed efficiency reaches $\Et=1$. Compared with Ma, this single
+component mixed-host sensor has lower overall efficiency and a stronger
+dependence on individual variables.
+
+Considering the correlations, the main knobs appear to be $\Delta G$,
+$\Delta C$, and $\Delta D$, but plotting how $\Et$ correlates to each one
+stratifying by the other two does not necessarily lead to the same results.
+In the data file, the largest correlations with $\Et$ are associated with $K_4$,
+$\Delta G$, $\Delta C$, and $\Delta D$.
+
+\begin{figure}[H]
+    \centering
+    \panelimage{Ms_outputsU/U/U_correlation_table.png}{correlation table}
+    \hfill
+    \panelimage{Ms_outputsU/U/U_Et_deltaC_deltaG.png}{$\Delta C,\Delta G$}
+    \hfill
+    \panelimage{Ms_outputsU/U/U_Et_deltaD_deltaG.png}{$\Delta D,\Delta G$}
+    \caption{Mixed-host sensor efficiency trends.}
+    \label{fig:mixed_host}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \panelimage{Ms_outputsU/U/stratcorr_deltaD_deltaC_Et_vs_deltaG.png}{$\Et$ vs $\Delta G$}
+    \hfill
+    \panelimage{Ms_outputsU/U/stratcorr_deltaD_deltaK_Et_vs_deltaG.png}{$\Delta D,\Delta K$}
+    \hfill
+    \panelimage{Ms_outputsU/U/stratcorr_deltaC_deltaG_Et_vs_deltaD.png}{$\Et$ vs $\Delta D$}
+    \caption{Stratified mixed-host correlations.}
+    \label{fig:mixed_stratified}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{Ms_outputsU/U/U_MeanEt_knob_matrix.png}
+    \caption{Mean-efficiency matrix for the Ms single component mixed-host knobs.}
+    \label{fig:ms_mean_matrix}
+\end{figure}
+
+Generally, the following holds. In the original interpretation, best
+differentiation occurs when:
 \begin{enumerate}
-    \item At least one $\Delta D$ must be negative
-    \item Optimal performance favors $\Delta D_1 < 0$ and $\Delta D_2 > 0$
+    \item $\Delta G \ll 0$,
+    \item $\Delta C > 0$,
+    \item $\Delta D \sim -1.5$,
+    \item $\Delta K > 0$,
+    \item $K_1 \sim 6$.
 \end{enumerate}
+In this generated Ms grid, $\Delta G$ is sampled from $0$ to $14$, so the data
+files represent that first point as the lower end of $\Delta G$ rather than a
+negative $\Delta G$ value.
 
-% =========================
+\section{Report Takeaways}
+
+The two-element IDA array improves classification relative to the single
+component IDA by increasing $\Et$ and lowering the variability in differentiation
+efficiency. For IDA arrays, the practical design rule is to keep both
+$\log\KHD$ values around 8, maintain $\Delta HD$ close to zero, increase
+$\Delta K$, and tune $\Delta D$ so that the stronger guest approaches the
+host--dye affinity. For the Ma mixed-host array, the generated data show high
+mean efficiency across the union partition and maxima at $\Et=1$, suggesting
+that the second mixed-host element helps maintain robust differentiation across
+a broad parameter region. For the Ms single component mixed-host sensor, the
+added dye--guest reaction changes the important design knobs: $\Delta G$,
+$\Delta C$, and $\Delta D$ become the dominant variables, with best
+differentiation occurring when dye--guest contrast is at the low end of the
+sampled $\Delta G$ range, $\Delta C$ is positive, and $\Delta D$ remains near
+$-1.5$.
+
 \end{document}

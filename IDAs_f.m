@@ -6,7 +6,7 @@ function [Ceq, f, Cc, a] =IDAs_function(const, Cs, C0)
             0, 0, 0, const(1), const(3)];
 
     beta_f= 10.^beta;
-    nsamp= 90; % number of samples
+    nsamp= 100; % number of samples per class
     C_tot_A= Cs*ones(nsamp,1);
     C_tot_B= [C0*(sqrt(.1)*10.^(rand(nsamp,1))), C0*(sqrt(.1)*10.^(rand(nsamp,1)))]; % G concentration
     C_tot_C= Cs*ones(nsamp,1);

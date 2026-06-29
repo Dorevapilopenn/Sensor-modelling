@@ -108,6 +108,42 @@ def _edges_and_centers(values, max_bins):
     return edges, centers
 
 
+def _binned_mean_grid(xvals, yvals, zvals, x_edges, y_edges):
+    xvals = np.asarray(xvals, dtype=float)
+    yvals = np.asarray(yvals, dtype=float)
+    zvals = np.asarray(zvals, dtype=float)
+    valid = ~(np.isnan(xvals) | np.isnan(yvals) | np.isnan(zvals))
+
+    xvals = xvals[valid]
+    yvals = yvals[valid]
+    zvals = zvals[valid]
+
+    xbin_count = len(x_edges) - 1
+    ybin_count = len(y_edges) - 1
+    sums = np.zeros((ybin_count, xbin_count), dtype=float)
+    counts = np.zeros((ybin_count, xbin_count), dtype=int)
+
+    xbins = np.searchsorted(x_edges, xvals, side="right") - 1
+    ybins = np.searchsorted(y_edges, yvals, side="right") - 1
+
+    in_range = (
+        (xvals >= x_edges[0])
+        & (xvals <= x_edges[-1])
+        & (yvals >= y_edges[0])
+        & (yvals <= y_edges[-1])
+    )
+    xbins = np.clip(xbins[in_range], 0, xbin_count - 1)
+    ybins = np.clip(ybins[in_range], 0, ybin_count - 1)
+    zvals = zvals[in_range]
+
+    np.add.at(sums, (ybins, xbins), zvals)
+    np.add.at(counts, (ybins, xbins), 1)
+
+    heatmap = np.full((ybin_count, xbin_count), np.nan)
+    np.divide(sums, counts, out=heatmap, where=counts > 0)
+    return heatmap
+
+
 def make_heatmap_mean(df, xcol, ycol, zcol, outpath, max_bins=40):
     xvals = df[xcol].to_numpy(dtype=float)
     yvals = df[ycol].to_numpy(dtype=float)
@@ -115,19 +151,7 @@ def make_heatmap_mean(df, xcol, ycol, zcol, outpath, max_bins=40):
 
     x_edges, x_centers = _edges_and_centers(xvals, max_bins)
     y_edges, y_centers = _edges_and_centers(yvals, max_bins)
-    heatmap = np.full((len(y_centers), len(x_centers)), np.nan)
-
-    for i in range(len(x_centers)):
-        xmask = (xvals >= x_edges[i]) & (xvals < x_edges[i + 1])
-        if i == len(x_centers) - 1:
-            xmask = (xvals >= x_edges[i]) & (xvals <= x_edges[i + 1])
-        for j in range(len(y_centers)):
-            ymask = (yvals >= y_edges[j]) & (yvals < y_edges[j + 1])
-            if j == len(y_centers) - 1:
-                ymask = (yvals >= y_edges[j]) & (yvals <= y_edges[j + 1])
-            mask = xmask & ymask
-            if mask.sum() > 0:
-                heatmap[j, i] = np.nanmean(zvals[mask])
+    heatmap = _binned_mean_grid(xvals, yvals, zvals, x_edges, y_edges)
 
     fig, ax = plt.subplots(figsize=(6, 5))
     mesh = ax.pcolormesh(x_edges, y_edges, heatmap, shading="auto", cmap="viridis")
@@ -199,45 +223,6 @@ def make_strat_corr(df, xcol, ycol, var_corr, target, outpath, xbins=20, ybins=2
     return outpath
 
 
-def _mean_by_pair(df, xcol, ycol, zcol, max_bins=40):
-    xvals = df[xcol].to_numpy(dtype=float)
-    yvals = df[ycol].to_numpy(dtype=float)
-    zvals = df[zcol].to_numpy(dtype=float)
-
-    unique_x = np.unique(xvals[~np.isnan(xvals)])
-    unique_y = np.unique(yvals[~np.isnan(yvals)])
-    if len(unique_x) <= max_bins and len(unique_y) <= max_bins:
-        grouped = (
-            pd.DataFrame({xcol: xvals, ycol: yvals, zcol: zvals})
-            .dropna()
-            .groupby([xcol, ycol], as_index=False)[zcol]
-            .mean()
-        )
-        return grouped[xcol].to_numpy(), grouped[ycol].to_numpy(), grouped[zcol].to_numpy()
-
-    x_edges, x_centers = _edges_and_centers(xvals, max_bins)
-    y_edges, y_centers = _edges_and_centers(yvals, max_bins)
-    xs = []
-    ys = []
-    means = []
-
-    for i, xcenter in enumerate(x_centers):
-        xmask = (xvals >= x_edges[i]) & (xvals < x_edges[i + 1])
-        if i == len(x_centers) - 1:
-            xmask = (xvals >= x_edges[i]) & (xvals <= x_edges[i + 1])
-        for j, ycenter in enumerate(y_centers):
-            ymask = (yvals >= y_edges[j]) & (yvals < y_edges[j + 1])
-            if j == len(y_centers) - 1:
-                ymask = (yvals >= y_edges[j]) & (yvals <= y_edges[j + 1])
-            mask = xmask & ymask
-            if mask.any():
-                xs.append(xcenter)
-                ys.append(ycenter)
-                means.append(np.nanmean(zvals[mask]))
-
-    return np.asarray(xs), np.asarray(ys), np.asarray(means)
-
-
 def make_mean_scatter_matrix(df, knobs, zcol, outpath, max_bins=40):
     knob_count = len(knobs)
     if knob_count < 2:
@@ -245,9 +230,9 @@ def make_mean_scatter_matrix(df, knobs, zcol, outpath, max_bins=40):
 
     fig_size = max(7, 1.45 * knob_count)
     fig, axes = plt.subplots(knob_count, knob_count, figsize=(fig_size, fig_size), squeeze=False)
-    zmin = np.nanmin(df[zcol].to_numpy(dtype=float))
-    zmax = np.nanmax(df[zcol].to_numpy(dtype=float))
-    scatter_for_colorbar = None
+    mesh_for_colorbar = None
+    panel_grids = {}
+    panel_values = []
 
     ranges = {}
     for knob in knobs:
@@ -261,6 +246,32 @@ def make_mean_scatter_matrix(df, knobs, zcol, outpath, max_bins=40):
             upper += pad
         ranges[knob] = (lower, upper)
 
+    for ycol in knobs:
+        for xcol in knobs:
+            if xcol == ycol:
+                continue
+            xvals = df[xcol].to_numpy(dtype=float)
+            yvals = df[ycol].to_numpy(dtype=float)
+            zvals = df[zcol].to_numpy(dtype=float)
+            x_edges, _ = _edges_and_centers(xvals, max_bins)
+            y_edges, _ = _edges_and_centers(yvals, max_bins)
+            heatmap = _binned_mean_grid(xvals, yvals, zvals, x_edges, y_edges)
+            panel_grids[(xcol, ycol)] = (x_edges, y_edges, heatmap)
+            finite_values = heatmap[np.isfinite(heatmap)]
+            if finite_values.size:
+                panel_values.append(finite_values)
+
+    if not panel_values:
+        raise ValueError(f"No finite binned {zcol} values found for {outpath}")
+
+    finite_panel_values = np.concatenate(panel_values)
+    zmin = np.nanmin(finite_panel_values)
+    zmax = np.nanmax(finite_panel_values)
+    if zmin == zmax:
+        pad = 1e-6 if zmin == 0 else abs(zmin) * 1e-6
+        zmin -= pad
+        zmax += pad
+
     for row, ycol in enumerate(knobs):
         for col, xcol in enumerate(knobs):
             ax = axes[row, col]
@@ -269,36 +280,51 @@ def make_mean_scatter_matrix(df, knobs, zcol, outpath, max_bins=40):
                 ax.set_xticks([])
                 ax.set_yticks([])
             else:
-                xs, ys, means = _mean_by_pair(df, xcol, ycol, zcol, max_bins=max_bins)
-                scatter_for_colorbar = ax.scatter(
-                    xs,
-                    ys,
-                    c=means,
+                x_edges, y_edges, heatmap = panel_grids[(xcol, ycol)]
+                mesh_for_colorbar = ax.pcolormesh(
+                    x_edges,
+                    y_edges,
+                    heatmap,
+                    shading="auto",
                     cmap="viridis",
                     vmin=zmin,
                     vmax=zmax,
-                    s=16,
-                    marker="s",
-                    linewidths=0,
                 )
                 ax.set_xlim(*ranges[xcol])
                 ax.set_ylim(*ranges[ycol])
-                ax.grid(True, color="#dddddd", linewidth=0.35)
+                for edge in x_edges:
+                    ax.axvline(edge, color="k", linewidth=0.12, alpha=0.35)
+                for edge in y_edges:
+                    ax.axhline(edge, color="k", linewidth=0.12, alpha=0.35)
 
             if row == knob_count - 1:
                 ax.set_xlabel(xcol, fontsize=8)
+                ax.tick_params(axis="x", labelbottom=True, bottom=True)
+            elif row == 0:
+                ax.xaxis.set_ticks_position("top")
+                ax.xaxis.set_label_position("top")
+                ax.tick_params(axis="x", labeltop=True, top=True, labelbottom=False, bottom=False)
             else:
                 ax.set_xticklabels([])
+                ax.tick_params(axis="x", labelbottom=False, bottom=False)
+
             if col == 0:
                 ax.set_ylabel(ycol, fontsize=8)
+                ax.tick_params(axis="y", labelleft=True, left=True)
+            elif col == knob_count - 1:
+                ax.yaxis.set_ticks_position("right")
+                ax.yaxis.set_label_position("right")
+                ax.tick_params(axis="y", labelright=True, right=True, labelleft=False, left=False)
             else:
                 ax.set_yticklabels([])
+                ax.tick_params(axis="y", labelleft=False, left=False)
             ax.tick_params(labelsize=6, length=2)
 
     fig.suptitle(f"Mean {zcol} stratified by knob pairs", fontsize=12)
-    fig.tight_layout(rect=(0, 0, 0.92, 0.96))
-    if scatter_for_colorbar is not None:
-        cbar = fig.colorbar(scatter_for_colorbar, ax=axes, fraction=0.025, pad=0.02)
+    fig.tight_layout(rect=(0, 0, 0.84, 0.96))
+    if mesh_for_colorbar is not None:
+        cbar_ax = fig.add_axes([0.90, 0.12, 0.018, 0.76])
+        cbar = fig.colorbar(mesh_for_colorbar, cax=cbar_ax)
         cbar.set_label(f"Mean {zcol}")
 
     fig.savefig(outpath, dpi=300, bbox_inches="tight")
