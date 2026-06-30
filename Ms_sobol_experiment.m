@@ -5,7 +5,7 @@ function result = Ms_sobol_experiment(varargin)
 %   Sobol variables: HD, deltaD, deltaK, deltaC, deltaG, PN, logCs, r
 %   Smoothing grid per nLV: LDA, logistic, and SVM_C = 10.^(-4:0.25:2)
 %   Checkpoints: 256, 512, ..., 8192
-%   Output JSON: Ms_sobol_optimal.json
+%   Output JSONs: Ms_sobol_optimal_top5.json and Ms_sobol_optimal_top1.json
 %
 % Example smoke run:
 %   Ms_sobol_experiment('maxSobolN', 16, 'initialSobolN', 4, ...
@@ -126,27 +126,37 @@ for c = 1:numel(checkpoints)
     end
 
     currentCheckpoints = checkpoints(checkpoints <= checkpointN);
-    currentHistory = evaluate_checkpoints(eff, currentCheckpoints, nLVByPerm, ...
-        classifierByPerm, svmLogCByPerm, svmCByPerm, cfg.topFraction, cfg.stabilityCount);
-    if currentHistory(end).stable
+    allStable = true;
+    for t = 1:numel(cfg.topFractions)
+        currentHistory = evaluate_checkpoints(eff, currentCheckpoints, nLVByPerm, ...
+            classifierByPerm, svmLogCByPerm, svmCByPerm, cfg.topFractions(t), cfg.stabilityCount);
+        allStable = allStable && currentHistory(end).stable;
+    end
+    if allStable
         stopAt = checkpointN;
-        fprintf('Stability reached at Sobol row %d.\n', checkpointN);
+        fprintf('Stability reached for all top fractions at Sobol row %d.\n', checkpointN);
         break;
     end
 end
 
 completedN = find(done, 1, 'last');
 completedCheckpoints = checkpoints(checkpoints <= min(stopAt, completedN));
-history = evaluate_checkpoints(eff, completedCheckpoints, nLVByPerm, classifierByPerm, ...
-    svmLogCByPerm, svmCByPerm, cfg.topFraction, cfg.stabilityCount);
-result = finalize_result(history, cfg, nLVByPerm, classifierByPerm, svmLogCByPerm, svmCByPerm);
-result.modelStats = model_stats_for_json(eff, result.selectedAtN);
-
-write_json(cfg.outputJson, result);
+for t = 1:numel(cfg.topFractions)
+    history = evaluate_checkpoints(eff, completedCheckpoints, nLVByPerm, classifierByPerm, ...
+        svmLogCByPerm, svmCByPerm, cfg.topFractions(t), cfg.stabilityCount);
+    resultForFraction = finalize_result(history, cfg, cfg.topFractions(t), ...
+        nLVByPerm, classifierByPerm, svmLogCByPerm, svmCByPerm);
+    resultForFraction.modelStats = model_stats_for_json(eff, resultForFraction.selectedAtN);
+    write_json(cfg.outputJsons{t}, resultForFraction);
+    fprintf('Ms Sobol result written to %s\n', cfg.outputJsons{t});
+    if t == 1
+        result = resultForFraction;
+    else
+        result(t) = resultForFraction; %#ok<AGROW>
+    end
+end
 save_checkpoint(cfg.checkpointFile, eff, done, ...
     nLVByPerm, classifierByPerm, svmLogCByPerm, svmCByPerm, cfgSaved);
-
-fprintf('Ms Sobol result written to %s\n', cfg.outputJson);
 end
 
 function cfg = parse_options(varargin)
@@ -155,10 +165,12 @@ cfg.initialSobolN = 256;
 cfg.maxSobolN = 262144;
 cfg.stabilityCount = 3;
 cfg.tolerance = 0.01;
-cfg.topFraction = 0.05;  % Edit this line: 0.05 = top 5%, 0.01 = top 1%
+cfg.topFractions = [0.05, 0.01];  % Edit this line: [0.05, 0.01] = top 5% and 1%
+cfg.topFraction = [];             % Optional legacy override for a single top fraction.
 cfg.nLVGrid = 2:9;
 cfg.svmLogCGrid = -4:0.25:2;
-cfg.outputJson = 'Ms_sobol_optimal.json';
+cfg.outputJsons = {'Ms_sobol_optimal_top5.json', 'Ms_sobol_optimal_top1.json'};
+cfg.outputJson = '';              % Optional legacy override for a single output file.
 cfg.checkpointFile = 'Ms_sobol_checkpoint.mat';
 cfg.saveEvery = 2048;
 cfg.progressEvery = 512;
@@ -180,17 +192,46 @@ for k = 1:2:numel(varargin)
     cfg.(name) = varargin{k + 1};
 end
 
-cfg.topFraction = parse_top_fraction(cfg.topFraction);
+if ~isempty(cfg.topFraction)
+    cfg.topFractions = parse_top_fractions(cfg.topFraction);
+else
+    cfg.topFractions = parse_top_fractions(cfg.topFractions);
+end
+if ~isempty(cfg.outputJson)
+    cfg.outputJsons = {char(cfg.outputJson)};
+end
+if ischar(cfg.outputJsons) || isstring(cfg.outputJsons)
+    cfg.outputJsons = cellstr(cfg.outputJsons);
+end
 
 validateattributes(cfg.initialSobolN, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(cfg.maxSobolN, {'numeric'}, {'scalar', 'integer', '>=', cfg.initialSobolN});
 validateattributes(cfg.stabilityCount, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(cfg.tolerance, {'numeric'}, {'scalar', 'positive'});
-validateattributes(cfg.topFraction, {'numeric'}, {'scalar', '>', 0, '<=', 1});
+validateattributes(cfg.topFractions, {'numeric'}, {'vector', '>', 0, '<=', 1});
 validateattributes(cfg.nLVGrid, {'numeric'}, {'vector', 'integer', 'positive'});
 validateattributes(cfg.svmLogCGrid, {'numeric'}, {'vector', 'real', 'finite'});
 validateattributes(cfg.saveEvery, {'numeric'}, {'scalar', 'integer', 'positive'});
 validateattributes(cfg.progressEvery, {'numeric'}, {'scalar', 'integer', 'positive'});
+if ~iscellstr(cfg.outputJsons) %#ok<ISCLSTR>
+    error('outputJsons must be a cell array of character vectors or a string array.');
+end
+if numel(cfg.outputJsons) ~= numel(cfg.topFractions)
+    error('outputJsons must contain one filename per topFractions value.');
+end
+end
+
+function topFractions = parse_top_fractions(raw)
+if iscell(raw)
+    topFractions = cellfun(@parse_top_fraction, raw);
+elseif isstring(raw) && numel(raw) > 1
+    topFractions = arrayfun(@parse_top_fraction, raw);
+elseif isnumeric(raw) && numel(raw) > 1
+    topFractions = raw;
+else
+    topFractions = parse_top_fraction(raw);
+end
+topFractions = topFractions(:).';
 end
 
 function topFraction = parse_top_fraction(raw)
@@ -663,7 +704,7 @@ function x = nan_to_inf(x)
 x(isnan(x)) = Inf;
 end
 
-function result = finalize_result(history, cfg, nLVByPerm, classifierByPerm, svmLogCByPerm, svmCByPerm)
+function result = finalize_result(history, cfg, topFraction, nLVByPerm, classifierByPerm, svmLogCByPerm, svmCByPerm)
 stableAt = find([history.stable], 1, 'first');
 if isempty(stableAt)
     finalIdx = numel(history);
@@ -679,7 +720,7 @@ result.sensor = 'Ms';
 result.reachedStability = reachedStability;
 result.stabilityCount = cfg.stabilityCount;
 result.tolerance = cfg.tolerance;
-result.topFraction = cfg.topFraction;
+result.topFraction = topFraction;
 result.initialSobolN = cfg.initialSobolN;
 result.maxSobolN = cfg.maxSobolN;
 result.selectedAtN = h.N;
