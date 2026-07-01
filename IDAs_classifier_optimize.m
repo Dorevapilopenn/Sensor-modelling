@@ -1,14 +1,14 @@
-function result = Ma_sobol_experiment(varargin)
-%Ma_sobol_experiment Sobol/doubling optimizer for mixed-host array.
+function result = IDAs_classifier_optimize(varargin)
+%IDAs_classifier_optimize Sobol/doubling optimizer for single-component IDA.
 %
 % Default experiment:
-%   Sobol variables: meanHD, deltaHD, deltaD1/2, deltaK1/2, deltaC1/2, deltaG1/2, PN, logCs, r
+%   Sobol variables: HD, deltaD, deltaK, logCs, r
 %   Smoothing grid per nLV: LDA, logistic, and SVM_C = 10.^(-4:0.25:2)
 %   Checkpoints: 256, 512, ..., 8192
-%   Output JSONs: Ma_sobol_optimal_top5.json and Ma_sobol_optimal_top1.json
+%   Output JSONs: IDAs_optimal_top5.json and IDAs_optimal_top1.json
 %
 % Example smoke run:
-%   Ma_sobol_experiment('maxSobolN', 16, 'initialSobolN', 4, ...
+%   IDAs_classifier_optimize('maxSobolN', 16, 'initialSobolN', 4, ...
 %       'stabilityCount', 2, 'nLVGrid', 2:3, 'svmLogCGrid', -1:1);
 
 cfg = parse_options(varargin{:});
@@ -34,13 +34,17 @@ if exist(cfg.checkpointFile, 'file')
         strcmp(S.cfgSaved.algorithmVersion, cfg.algorithmVersion) && ...
         isfield(S, 'nLVByPerm') && isequal(S.nLVByPerm(:), nLVByPerm(:)) && ...
         isfield(S, 'classifierByPerm') && isequal(S.classifierByPerm(:), classifierByPerm(:)) && ...
-        isfield(S, 'svmLogCByPerm') && isequal(S.svmLogCByPerm(:), svmLogCByPerm(:)) && ...
-        isfield(S, 'eff') && size(S.eff, 1) == nSamples && size(S.eff, 2) == nPerm;
+        isfield(S, 'svmLogCByPerm') && isequaln(S.svmLogCByPerm(:), svmLogCByPerm(:)) && ...
+        isfield(S, 'eff') && size(S.eff, 2) == nPerm && ...
+        isfield(S, 'done') && numel(S.done) == size(S.eff, 1);
 
     if checkpointCompatible
-        eff = S.eff;
-        done = S.done;
-        cfgSaved = S.cfgSaved; %#ok<NASGU>
+        eff = NaN(nSamples, nPerm, 'single');
+        done = false(nSamples, 1);
+        reuseRows = min(size(S.eff, 1), nSamples);
+        eff(1:reuseRows, :) = S.eff(1:reuseRows, :);
+        done(1:reuseRows) = S.done(1:reuseRows);
+        cfgSaved = cfg; %#ok<NASGU>
     else
         warning('Ignoring incompatible checkpoint file %s; starting fresh.', cfg.checkpointFile);
         eff = NaN(nSamples, nPerm, 'single');
@@ -148,7 +152,7 @@ for t = 1:numel(cfg.topFractions)
         nLVByPerm, classifierByPerm, svmLogCByPerm, svmCByPerm);
     resultForFraction.modelStats = model_stats_for_json(eff, resultForFraction.selectedAtN);
     write_json(cfg.outputJsons{t}, resultForFraction);
-    fprintf('Ma Sobol result written to %s\n', cfg.outputJsons{t});
+    fprintf('IDAs Sobol result written to %s\n', cfg.outputJsons{t});
     if t == 1
         result = resultForFraction;
     else
@@ -169,9 +173,9 @@ cfg.topFractions = [0.05, 0.01];  % Edit this line: [0.05, 0.01] = top 5% and 1%
 cfg.topFraction = [];             % Optional legacy override for a single top fraction.
 cfg.nLVGrid = 2:9;
 cfg.svmLogCGrid = -4:0.25:2;
-cfg.outputJsons = {'Ma_sobol_optimal_top5.json', 'Ma_sobol_optimal_top1.json'};
+cfg.outputJsons = {'IDAs_optimal_top5.json', 'IDAs_optimal_top1.json'};
 cfg.outputJson = '';              % Optional legacy override for a single output file.
-cfg.checkpointFile = 'Ma_sobol_checkpoint.mat';
+cfg.checkpointFile = 'IDAs_classifier_optimize_checkpoint.mat';
 cfg.saveEvery = 2048;
 cfg.progressEvery = 512;
 cfg.baseSeed = 1729;
@@ -179,7 +183,7 @@ cfg.sobolSkip = 1024;
 cfg.sobolLeap = 0;
 cfg.useParallel = true;
 cfg.workers = 6;
-cfg.algorithmVersion = 'Ma_sobol_fast_pls_reuse_svm_squared_hinge_v1';
+cfg.algorithmVersion = 'IDAs_sobol_fast_pls_reuse_svm_squared_hinge_scalar_ida_v3';
 
 if mod(numel(varargin), 2) ~= 0
     error('Options must be supplied as name/value pairs.');
@@ -289,7 +293,7 @@ end
 end
 
 function [knobs, constants, sampleInfo] = make_idas_sobol_inputs(nSamples, cfg)
-dim = 13;
+dim = 5;
 if exist('sobolset', 'file') ~= 2
     error('sobolset is required for this experiment.');
 end
@@ -299,51 +303,23 @@ p = scramble(p, 'MatousekAffineOwen');
 u = net(p, nSamples);
 
 ranges = [
-     2, 10;   % meanHD
-    -6,  6;   % deltaHD
-    -6,  6;   % deltaD1
-    -6,  6;   % deltaD2
-     0, 12;   % deltaK1
-     0, 12;   % deltaK2
-    -6,  6;   % deltaC1
-    -6,  6;   % deltaC2
-    -8,  8;   % deltaG1
-    -8,  8;   % deltaG2
-     0,  1;   % PN, <0.5=N and >=0.5=P
+     2, 10;   % HD / K1
+    -6,  6;   % deltaD
+     0, 12;   % deltaK
     -6, -2;   % logCs
-    -2,  2];  % r, where C0/Cs = 10^r
+    -2,  2];  % r, where C0 = 10^r
 
 scaled = ranges(:, 1).' + u .* (ranges(:, 2).' - ranges(:, 1).');
-PN = double(scaled(:, 11) >= 0.5);
-knobs = array2table([scaled(:, 1:10), PN, scaled(:, 12:13)], ...
-    'VariableNames', {'meanHD', 'deltaHD', 'deltaD1', 'deltaD2', 'deltaK1', 'deltaK2', ...
-    'deltaC1', 'deltaC2', 'deltaG1', 'deltaG2', 'PN', 'logCs', 'r'});
+knobs = array2table(scaled, 'VariableNames', {'HD', 'deltaD', 'deltaK', 'logCs', 'r'});
 
-K1 = scaled(:, 1) - scaled(:, 2) / 2;
-K6 = scaled(:, 1) + scaled(:, 2) / 2;
-K2 = K1 + scaled(:, 3);
-K3 = K2 + scaled(:, 5);
-K7 = K6 + scaled(:, 4);
-K8 = K7 + scaled(:, 6);
-isN = PN == 0;
-K7(isN) = K6(isN) + scaled(isN, 4) + scaled(isN, 6);
-K8(isN) = K6(isN) + scaled(isN, 4);
-[K4, K5] = signed_pair(K1, scaled(:, 7), scaled(:, 9));
-[K9, K10] = signed_pair(K6, scaled(:, 8), scaled(:, 10));
-constants = [K1, K2, K3, K4, K5, K6, K7, K8, K9, K10];
+K1 = scaled(:, 1);
+K2 = K1 + scaled(:, 2);
+K3 = K2 + scaled(:, 3);
+constants = [K1, K2, K3];
 
 sampleInfo = table();
-sampleInfo.Cs = 10 .^ scaled(:, 12);
-sampleInfo.C0 = sampleInfo.Cs .* (10 .^ scaled(:, 13));
-end
-
-function [Kfirst, Ksecond] = signed_pair(baseK, deltaOffset, signedDelta)
-lowVal = baseK + deltaOffset;
-Kfirst = lowVal;
-Ksecond = lowVal + abs(signedDelta);
-neg = signedDelta < 0;
-Kfirst(neg) = lowVal(neg) - signedDelta(neg);
-Ksecond(neg) = lowVal(neg);
+sampleInfo.Cs = 10 .^ scaled(:, 4);
+sampleInfo.C0 = sampleInfo.Cs .* (10 .^ scaled(:, 5));
 end
 
 function ensure_parallel_pool(workers)
@@ -354,13 +330,24 @@ end
 pool = gcp('nocreate');
 if isempty(pool)
     if isempty(workers)
-        parpool('local');
+        pool = parpool('local');
     else
-        parpool('local', workers);
+        pool = parpool('local', workers);
     end
 elseif ~isempty(workers) && pool.NumWorkers ~= workers
     delete(pool);
-    parpool('local', workers);
+    pool = parpool('local', workers);
+end
+set_pool_idle_timeout(pool);
+end
+
+function set_pool_idle_timeout(pool)
+if isprop(pool, 'IdleTimeout')
+    try
+        pool.IdleTimeout = Inf;
+    catch ME
+        warning('Could not disable parallel pool IdleTimeout: %s', ME.message);
+    end
 end
 end
 
@@ -368,11 +355,12 @@ function [rowIdx, effRow, workerSeconds] = evaluate_idas_sobol_row(rowIdx, const
     nLVByPerm, classifierByPerm, svmCByPerm, AtrL, AtL, baseSeed)
 workerTimer = tic;
 rng(baseSeed + rowIdx, 'twister');
-[~, f, ~, ~] = Ma_f(constantsRow, Cs, C0);
-AtrD = [f{1}(1:75, :); f{3}(1:75, :)];
-AtD = [f{2}(1:25, :); f{4}(1:25, :)];
-AtrD(~isfinite(AtrD)) = 0;
-AtD(~isfinite(AtD)) = 0;
+[~, f, ~, ~] = IDAs_f(constantsRow, Cs, C0);
+D = [f{1}; f{2}];
+D(~isfinite(D)) = 0;
+
+AtrD = [D(1:75, :); D(101:175, :)];
+AtD = [D(76:100, :); D(176:200, :)];
 
 nPerm = numel(nLVByPerm);
 effRow = NaN(1, nPerm, 'single');
@@ -725,7 +713,7 @@ end
 
 h = history(finalIdx);
 result = struct();
-result.sensor = 'Ma';
+result.sensor = 'IDAs';
 result.reachedStability = reachedStability;
 result.stabilityCount = cfg.stabilityCount;
 result.tolerance = cfg.tolerance;
@@ -740,20 +728,11 @@ result.optimal = struct( ...
     'SVM_log10_C', h.selectedSVMLogC, ...
     'permutationIndex', h.selectedIndex);
 result.selectedStats = rmfield(h, {'selectedNLV', 'selectedClassifier', 'selectedSVMC', 'selectedSVMLogC'});
-result.sobolVariables = {'meanHD', 'deltaHD', 'deltaD1', 'deltaD2', 'deltaK1', 'deltaK2', ...
-    'deltaC1', 'deltaC2', 'deltaG1', 'deltaG2', 'PN', 'logCs', 'r'};
+result.sobolVariables = {'HD', 'deltaD', 'deltaK', 'logCs', 'r'};
 result.sobolRanges = struct( ...
-    'meanHD', [2, 10], ...
-    'deltaHD', [-6, 6], ...
-    'deltaD1', [-6, 6], ...
-    'deltaD2', [-6, 6], ...
-    'deltaK1', [0, 12], ...
-    'deltaK2', [0, 12], ...
-    'deltaC1', [-6, 6], ...
-    'deltaC2', [-6, 6], ...
-    'deltaG1', [-8, 8], ...
-    'deltaG2', [-8, 8], ...
-    'PN', [0, 1], ...
+    'HD', [2, 10], ...
+    'deltaD', [-6, 6], ...
+    'deltaK', [0, 12], ...
     'logCs', [-6, -2], ...
     'r', [-2, 2]);
 result.concentrationTransform = struct('Cs', '10^logCs', 'C0_over_Cs', '10^r', 'C0', 'Cs*10^r');

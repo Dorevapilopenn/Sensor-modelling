@@ -191,75 +191,46 @@ There are two settings for the sensor arrays:
 
 \section{IDA Array Results}
 
-The mean total efficiency $\mathrm{mean}(\Et)$ is studied stratifying by multiple
-parameters. The correlation tables show where $\Delta K$ and $\Delta D$ behave as
-the main knobs.
+The mean total efficiency $\mathrm{mean}(\Et)$ is summarized here using Pearson
+correlations and the generated SPLOM-style mean-efficiency matrices. These two
+views keep the interpretation focused on monotonic linear effects and paired knob
+structure without introducing separate heatmap panels for individual knob pairs.
 
 \begin{figure}[H]
     \centering
-    \panelimage{IDAa_outputs/U/U_correlation_table.png}{U}
+    \panelimage{gitignored_data/IDAa_outputs/U/U_correlation_table.png}{U}
     \hfill
-    \panelimage{IDAa_outputs/N/N_correlation_table.png}{N}
+    \panelimage{gitignored_data/IDAa_outputs/N/N_correlation_table.png}{N}
     \hfill
-    \panelimage{IDAa_outputs/P/P_correlation_table.png}{P}
-    \caption{Correlation tables for total efficiency in the IDA array.}
+    \panelimage{gitignored_data/IDAa_outputs/P/P_correlation_table.png}{P}
+    \caption{Pearson correlation tables for total efficiency in the IDA array.}
     \label{fig:ida_corr_tables}
 \end{figure}
 
-The plots versus $K_1$ and $\Delta HD$ give insight on what host and dye to look
-for.
-
 \begin{figure}[H]
     \centering
-    \panelimage{IDAa_outputs/U/U_Et_MeanHD_deltaHD.png}{U}
+    \panelimage{gitignored_data/IDAa_outputs/U/U_MeanEt_component1_matrix.png}{element 1}
     \hfill
-    \panelimage{IDAa_outputs/N/N_Et_MeanHD_deltaHD.png}{N}
+    \panelimage{gitignored_data/IDAa_outputs/U/U_MeanEt_component2_matrix.png}{element 2}
     \hfill
-    \panelimage{IDAa_outputs/P/P_Et_MeanHD_deltaHD.png}{P}
-    \caption{Effect of mean host--dye strength and $\Delta HD$ on $\Et$.}
-    \label{fig:ida_meanhd_deltahd}
-\end{figure}
-
-The $\Delta K_1,\Delta K_2$ plots show what $\Delta K$ to aim for. The
-$\Delta D_1,\Delta D_2$ plots show what $\Delta D$ to aim for.
-
-\begin{figure}[H]
-    \centering
-    \panelimage{IDAa_outputs/U/U_Et_deltaK1_deltaK2.png}{U}
-    \hfill
-    \panelimage{IDAa_outputs/N/N_Et_deltaK1_deltaK2.png}{N}
-    \hfill
-    \panelimage{IDAa_outputs/P/P_Et_deltaK1_deltaK2.png}{P}
-    \caption{Total efficiency versus $\Delta K_1$ and $\Delta K_2$.}
-    \label{fig:ida_deltak}
+    \panelimage{gitignored_data/IDAa_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{corresponding knobs}
+    \caption{IDA array SPLOM-style mean-efficiency matrices for the union partition.}
+    \label{fig:ida_splom_u}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \panelimage{IDAa_outputs/U/U_Et_deltaD1_deltaD2.png}{U}
+    \panelimage{gitignored_data/IDAa_outputs/N/N_MeanEt_corresponding_knobs_matrix.png}{N}
     \hfill
-    \panelimage{IDAa_outputs/N/N_Et_deltaD1_deltaD2.png}{N}
+    \panelimage{gitignored_data/IDAa_outputs/P/P_MeanEt_corresponding_knobs_matrix.png}{P}
     \hfill
-    \panelimage{IDAa_outputs/P/P_Et_deltaD1_deltaD2.png}{P}
-    \caption{Total efficiency versus $\Delta D_1$ and $\Delta D_2$.}
-    \label{fig:ida_deltad}
+    \panelimage{gitignored_data/IDAa_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{U}
+    \caption{IDA array corresponding-knob SPLOM matrices across the N, P, and U partitions.}
+    \label{fig:ida_splom_partitions}
 \end{figure}
 
-The plots of $K_1,\Delta D_1$ and $K_4,\Delta D_2$ test whether $\Delta D$ is
-solely important or whether $\KHD$ also matters.
-
-\begin{figure}[H]
-    \centering
-    \panelimage{IDAa_outputs/U/U_Et_deltaD1_K1.png}{$K_1,\Delta D_1$}
-    \hfill
-    \panelimage{IDAa_outputs/U/U_Et_deltaD2_K4.png}{$K_4,\Delta D_2$}
-    \hfill
-    \panelimage{IDAa_outputs/U/U_corr_deltaK1_vs_Et_K1_deltaD1.png}{stratified correlation}
-    \caption{Host--dye strength and guest--dye offset as controls of efficiency.}
-    \label{fig:ida_khd_deltad}
-\end{figure}
-
-The showings indicate that two sensors are almost independent. One must aim for:
+The Pearson tables and SPLOM matrices indicate that the two IDA elements are
+approximately separable design components. The practical direction remains:
 \begin{enumerate}
     \item Keeping both $\log\KHD$ values around 8.
     \item A high $\Delta K$.
@@ -288,24 +259,10 @@ $\Delta D_1,\Delta D_2$ & $\{-6:1.5:6\}$ \\
 \end{tabular}
 \end{table}
 
-The results are almost concurrent with the former simulation. Notable showings
-are that $\overline{HD}\sim 8$, $\Delta HD \sim 0$, and an increase in
-$\Delta K$ values all cause an increase in $\Et$.
-
-But in $\mathbf{P}$, a negative $\Delta D_1$ but a positive $\Delta D_2$
-maximizes $\Et$, while in $\mathbf{N}$ a negative $\Delta D_1$ is all that is
-needed and is almost independent of $\Delta D_2$.
-
-\begin{figure}[H]
-    \centering
-    \panelimage{IDAa_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{U}
-    \hfill
-    \panelimage{IDAa_outputs/N/N_MeanEt_corresponding_knobs_matrix.png}{N}
-    \hfill
-    \panelimage{IDAa_outputs/P/P_MeanEt_corresponding_knobs_matrix.png}{P}
-    \caption{Mean efficiency matrices from the confirmatory IDA array simulation.}
-    \label{fig:ida_confirmatory}
-\end{figure}
+The confirmatory simulation is consistent with the IDA-array SPLOM summary:
+$\overline{HD}$ remains most useful near the middle of the sampled range,
+$\Delta HD$ is most useful when the two elements are balanced, and larger
+guest-selectivity separation supports higher $\Et$.
 
 \section{Mixed-Host Array Check}
 
@@ -356,12 +313,12 @@ $0.9822$ for $\mathbf{N}$, with maxima reaching $\Et=1$ in all three partitions.
 
 \begin{figure}[H]
     \centering
-    \panelimage{Ma_outputs/U/U_correlation_table.png}{U}
+    \panelimage{gitignored_data/Ma_outputs/U/U_correlation_table.png}{U}
     \hfill
-    \panelimage{Ma_outputs/N/N_correlation_table.png}{N}
+    \panelimage{gitignored_data/Ma_outputs/N/N_correlation_table.png}{N}
     \hfill
-    \panelimage{Ma_outputs/P/P_correlation_table.png}{P}
-    \caption{Correlation tables for total efficiency in the Ma mixed-host array.}
+    \panelimage{gitignored_data/Ma_outputs/P/P_correlation_table.png}{P}
+    \caption{Pearson correlation tables for total efficiency in the Ma mixed-host array.}
     \label{fig:ma_corr_tables}
 \end{figure}
 
@@ -373,46 +330,24 @@ through $K_9$, $K_7$, $K_8$, and the second-element selectivity variables.
 
 \begin{figure}[H]
     \centering
-    \panelimage{Ma_outputs/U/U_Et_MeanHD_deltaHD.png}{U}
+    \panelimage{gitignored_data/Ma_outputs/U/U_MeanEt_component1_matrix.png}{element 1}
     \hfill
-    \panelimage{Ma_outputs/N/N_Et_MeanHD_deltaHD.png}{N}
+    \panelimage{gitignored_data/Ma_outputs/U/U_MeanEt_component2_matrix.png}{element 2}
     \hfill
-    \panelimage{Ma_outputs/P/P_Et_MeanHD_deltaHD.png}{P}
-    \caption{Ma efficiency versus mean host--dye strength and $\Delta HD$.}
-    \label{fig:ma_meanhd_deltahd}
+    \panelimage{gitignored_data/Ma_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{corresponding knobs}
+    \caption{Ma SPLOM-style mean-efficiency matrices for the union partition.}
+    \label{fig:ma_splom_u}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \panelimage{Ma_outputs/U/U_Et_deltaD1_deltaD2.png}{$\Delta D_1,\Delta D_2$}
+    \panelimage{gitignored_data/Ma_outputs/N/N_MeanEt_corresponding_knobs_matrix.png}{N}
     \hfill
-    \panelimage{Ma_outputs/U/U_Et_deltaK1_deltaK2.png}{$\Delta K_1,\Delta K_2$}
+    \panelimage{gitignored_data/Ma_outputs/P/P_MeanEt_corresponding_knobs_matrix.png}{P}
     \hfill
-    \panelimage{Ma_outputs/U/U_Et_deltaG1_deltaG2.png}{$\Delta G_1,\Delta G_2$}
-    \caption{Paired Ma array knobs in the union partition.}
-    \label{fig:ma_pair_knobs}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \panelimage{Ma_outputs/U/U_Et_deltaC1_deltaG1.png}{element 1}
-    \hfill
-    \panelimage{Ma_outputs/U/U_Et_deltaC2_deltaG2.png}{element 2}
-    \hfill
-    \panelimage{Ma_outputs/U/U_Et_deltaC1_deltaC2.png}{$\Delta C_1,\Delta C_2$}
-    \caption{Dye--guest offset and dye selectivity effects in the Ma array.}
-    \label{fig:ma_cg}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \panelimage{Ma_outputs/U/U_MeanEt_component1_matrix.png}{component 1}
-    \hfill
-    \panelimage{Ma_outputs/U/U_MeanEt_component2_matrix.png}{component 2}
-    \hfill
-    \panelimage{Ma_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{corresponding knobs}
-    \caption{Mean-efficiency matrices for Ma component and cross-component knobs.}
-    \label{fig:ma_mean_matrices}
+    \panelimage{gitignored_data/Ma_outputs/U/U_MeanEt_corresponding_knobs_matrix.png}{U}
+    \caption{Ma corresponding-knob SPLOM matrices across the N, P, and U partitions.}
+    \label{fig:ma_splom_partitions}
 \end{figure}
 
 The Ma array reaches high efficiencies over a broad region. A practical reading
@@ -453,7 +388,7 @@ The knobs were chosen from the following sets:
     \item $\Delta K \in \{0:2:14\}$
 \end{itemize}
 
-Looking at the heatmaps, one could see that the same conclusions apply here:
+The Pearson table and SPLOM matrix support the same broad conclusions:
 \begin{itemize}
     \item a $\Delta D$ of around $-1.5$ yields the best efficiencies,
     \item a higher $\Delta K$ somewhat correlates with a higher efficiency,
@@ -462,12 +397,18 @@ Looking at the heatmaps, one could see that the same conclusions apply here:
 
 \begin{figure}[H]
     \centering
-    \panelimage{IDAs_outputsU/U/U_correlation_table.png}{correlation table}
+    \begin{subfigure}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{gitignored_data/IDAs_outputsU/U/U_correlation_table.png}
+        \caption{Pearson correlations}
+    \end{subfigure}
     \hfill
-    \panelimage{IDAs_outputsU/U/U_Et_deltad_deltak.png}{$\Delta D,\Delta K$}
-    \hfill
-    \panelimage{IDAs_outputsU/U/U_Et_K1_deltaD.png}{$K_1,\Delta D$}
-    \caption{Single component IDA efficiency trends.}
+    \begin{subfigure}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{gitignored_data/IDAs_outputsU/U/U_MeanEt_knob_matrix.png}
+        \caption{SPLOM matrix}
+    \end{subfigure}
+    \caption{Single component IDA Pearson correlations and SPLOM summary.}
     \label{fig:single_ida}
 \end{figure}
 
@@ -525,31 +466,19 @@ $\Delta G$, $\Delta C$, and $\Delta D$.
 
 \begin{figure}[H]
     \centering
-    \panelimage{Ms_outputsU/U/U_correlation_table.png}{correlation table}
+    \begin{subfigure}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{gitignored_data/Ms_outputsU/U/U_correlation_table.png}
+        \caption{Pearson correlations}
+    \end{subfigure}
     \hfill
-    \panelimage{Ms_outputsU/U/U_Et_deltaC_deltaG.png}{$\Delta C,\Delta G$}
-    \hfill
-    \panelimage{Ms_outputsU/U/U_Et_deltaD_deltaG.png}{$\Delta D,\Delta G$}
-    \caption{Mixed-host sensor efficiency trends.}
+    \begin{subfigure}[t]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{gitignored_data/Ms_outputsU/U/U_MeanEt_knob_matrix.png}
+        \caption{SPLOM matrix}
+    \end{subfigure}
+    \caption{Mixed-host sensor Pearson correlations and SPLOM summary.}
     \label{fig:mixed_host}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \panelimage{Ms_outputsU/U/stratcorr_deltaD_deltaC_Et_vs_deltaG.png}{$\Et$ vs $\Delta G$}
-    \hfill
-    \panelimage{Ms_outputsU/U/stratcorr_deltaD_deltaK_Et_vs_deltaG.png}{$\Delta D,\Delta K$}
-    \hfill
-    \panelimage{Ms_outputsU/U/stratcorr_deltaC_deltaG_Et_vs_deltaD.png}{$\Et$ vs $\Delta D$}
-    \caption{Stratified mixed-host correlations.}
-    \label{fig:mixed_stratified}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.82\textwidth]{Ms_outputsU/U/U_MeanEt_knob_matrix.png}
-    \caption{Mean-efficiency matrix for the Ms single component mixed-host knobs.}
-    \label{fig:ms_mean_matrix}
 \end{figure}
 
 Generally, the following holds. In the original interpretation, best

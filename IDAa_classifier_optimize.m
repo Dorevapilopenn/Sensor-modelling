@@ -1,14 +1,14 @@
-function result = IDAa_sobol_experiment(varargin)
-%IDAa_sobol_experiment Sobol/doubling optimizer for two-element IDA array.
+function result = IDAa_classifier_optimize(varargin)
+%IDAa_classifier_optimize Sobol/doubling optimizer for two-element IDA array.
 %
 % Default experiment:
 %   Sobol variables: meanHD, deltaHD, deltaD1, deltaD2, deltaK1, deltaK2, PN, logCs, r
 %   Smoothing grid per nLV: LDA, logistic, and SVM_C = 10.^(-4:0.25:2)
 %   Checkpoints: 256, 512, ..., 8192
-%   Output JSONs: IDAa_sobol_optimal_top5.json and IDAa_sobol_optimal_top1.json
+%   Output JSONs: IDAa_optimal_top5.json and IDAa_optimal_top1.json
 %
 % Example smoke run:
-%   IDAa_sobol_experiment('maxSobolN', 16, 'initialSobolN', 4, ...
+%   IDAa_classifier_optimize('maxSobolN', 16, 'initialSobolN', 4, ...
 %       'stabilityCount', 2, 'nLVGrid', 2:3, 'svmLogCGrid', -1:1);
 
 cfg = parse_options(varargin{:});
@@ -34,13 +34,17 @@ if exist(cfg.checkpointFile, 'file')
         strcmp(S.cfgSaved.algorithmVersion, cfg.algorithmVersion) && ...
         isfield(S, 'nLVByPerm') && isequal(S.nLVByPerm(:), nLVByPerm(:)) && ...
         isfield(S, 'classifierByPerm') && isequal(S.classifierByPerm(:), classifierByPerm(:)) && ...
-        isfield(S, 'svmLogCByPerm') && isequal(S.svmLogCByPerm(:), svmLogCByPerm(:)) && ...
-        isfield(S, 'eff') && size(S.eff, 1) == nSamples && size(S.eff, 2) == nPerm;
+        isfield(S, 'svmLogCByPerm') && isequaln(S.svmLogCByPerm(:), svmLogCByPerm(:)) && ...
+        isfield(S, 'eff') && size(S.eff, 2) == nPerm && ...
+        isfield(S, 'done') && numel(S.done) == size(S.eff, 1);
 
     if checkpointCompatible
-        eff = S.eff;
-        done = S.done;
-        cfgSaved = S.cfgSaved; %#ok<NASGU>
+        eff = NaN(nSamples, nPerm, 'single');
+        done = false(nSamples, 1);
+        reuseRows = min(size(S.eff, 1), nSamples);
+        eff(1:reuseRows, :) = S.eff(1:reuseRows, :);
+        done(1:reuseRows) = S.done(1:reuseRows);
+        cfgSaved = cfg; %#ok<NASGU>
     else
         warning('Ignoring incompatible checkpoint file %s; starting fresh.', cfg.checkpointFile);
         eff = NaN(nSamples, nPerm, 'single');
@@ -169,9 +173,9 @@ cfg.topFractions = [0.05, 0.01];  % Edit this line: [0.05, 0.01] = top 5% and 1%
 cfg.topFraction = [];             % Optional legacy override for a single top fraction.
 cfg.nLVGrid = 2:9;
 cfg.svmLogCGrid = -4:0.25:2;
-cfg.outputJsons = {'IDAa_sobol_optimal_top5.json', 'IDAa_sobol_optimal_top1.json'};
+cfg.outputJsons = {'IDAa_optimal_top5.json', 'IDAa_optimal_top1.json'};
 cfg.outputJson = '';              % Optional legacy override for a single output file.
-cfg.checkpointFile = 'IDAa_sobol_checkpoint.mat';
+cfg.checkpointFile = 'IDAa_classifier_optimize_checkpoint.mat';
 cfg.saveEvery = 2048;
 cfg.progressEvery = 512;
 cfg.baseSeed = 1729;
@@ -338,13 +342,24 @@ end
 pool = gcp('nocreate');
 if isempty(pool)
     if isempty(workers)
-        parpool('local');
+        pool = parpool('local');
     else
-        parpool('local', workers);
+        pool = parpool('local', workers);
     end
 elseif ~isempty(workers) && pool.NumWorkers ~= workers
     delete(pool);
-    parpool('local', workers);
+    pool = parpool('local', workers);
+end
+set_pool_idle_timeout(pool);
+end
+
+function set_pool_idle_timeout(pool)
+if isprop(pool, 'IdleTimeout')
+    try
+        pool.IdleTimeout = Inf;
+    catch ME
+        warning('Could not disable parallel pool IdleTimeout: %s', ME.message);
+    end
 end
 end
 
